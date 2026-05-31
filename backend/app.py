@@ -26,13 +26,13 @@ groq_client = Groq(api_key=groq_key)
 app = Flask(__name__)
 
 # Allow requests from React dev server
-CORS(app, resources={
-    r"/*": {
-        "origins": ["http://localhost:5173", "http://127.0.0.1:5173"],
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"]
-    }
-})
+CORS(
+    app,
+    origins=[
+        "http://localhost:5173",  # Local development server
+        "https://portfolio-ai-4w9i.onrender.com",  # Deployed backend/frontend URL
+    ],
+)
 
 
 # Get current stock price using yfinance
