@@ -1,0 +1,191 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #f4f5f7;
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+h1 {
+    font-size: 2.5rem;
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+h2 {
+    font-size: 1.2rem;
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.holding {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+.holding input {
+    flex: 1;
+}
+
+input[type="text"],
+input[type="number"] {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+button {
+    display: inline-block;
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: bold;
+    color: #ffffff;
+    background-color: #3498db;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-right: 10px;
+    margin-top: 10px;
+}
+
+button:hover {
+    background-color: #2980b9;
+}
+
+button:disabled {
+    background-color: #95a5a6;
+    cursor: not-allowed;
+}
+
+.back-btn {
+    background: none;
+    color: #3498db;
+    padding: 0;
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+    font-weight: normal;
+}
+
+.back-btn:hover {
+    background: none;
+    color: #2980b9;
+    text-decoration: underline;
+}
+
+.remove-btn {
+    background-color: #e74c3c;
+    padding: 8px 12px;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.remove-btn:hover {
+    background-color: #c0392b;
+}
+
+#results {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    border-left: 5px solid #2ecc71;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+#analysis-text {
+    line-height: 1.7;
+    color: #2c3e50;
+    font-size: 0.95rem;
+    white-space: pre-wrap;
+}
+
+#period-buttons {
+    display: flex;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+#period-buttons button {
+    background-color: #ecf0f1;
+    color: #2c3e50;
+    border: 2px solid #bdc3c7;
+    padding: 8px 16px;
+    border-radius: 6px;
+    margin: 0;
+}
+
+#period-buttons button:hover {
+    background-color: #d5e8f5;
+}
+
+#period-buttons button.active {
+    background-color: #3498db;
+    color: white;
+    border-color: #3498db;
+}
+
+
+/* ── Stock Info ── */
+
+#stock-info {
+    margin-top: 30px;
+}
+
+#stock-name {
+    font-size: 1.4rem;
+    color: #2c3e50;
+    margin-bottom: 8px;
+}
+
+#stock-meta {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.meta-price {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.meta-stat {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    background: #ecf0f1;
+    padding: 4px 10px;
+    border-radius: 4px;
+}
+
+
+/* ── Chart ── */
+
+#chart-container {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
