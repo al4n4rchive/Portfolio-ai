@@ -26,11 +26,10 @@ groq_client = Groq(api_key=groq_key)
 app = Flask(__name__)
 
 # Allow requests from React dev server
-CORS
-(app, origins=[
+CORS(app, origins=[
     "http://localhost:5173", #local on computer
     "https://portfolio-ai-e1lf.onrender.com", #render
-    "https://your-project.vercel.app"  #vercel
+    "https://portfolio-ai-gamma-indol.vercel.app/"  #vercel
 ])
 
 
