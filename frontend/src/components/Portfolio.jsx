@@ -43,7 +43,7 @@ function Portfolio() {
         setAnalysis("");
 
         try {
-            const res = await fetch("https://portfolio-ai-4w9i.onrender.com/analyze", {
+            const res = await fetch("https://portfolio-ai-e1lf.onrender.com/analyze", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
