@@ -27,9 +27,9 @@ app = Flask(__name__)
 
 # Allow requests from React dev server
 CORS(app, origins=[
-    "http://localhost:5173", #local on computer
-    "https://portfolio-ai-e1lf.onrender.com", #render
-    "https://portfolio-ai-gamma-indol.vercel.app"  #vercel
+    "http://localhost:5173",
+    "https://portfolio-ai-e1lf.onrender.com",
+    "https://portfolio-ai-gamma-indol.vercel.app"
 ])
 
 
@@ -54,72 +54,76 @@ def get_stock_price(ticker):
 @app.route("/analyze", methods=["POST"])
 def analyze():
 
-    # Get request data
     data = request.get_json()
+    print("Received data:", data)
 
-    # Validate request body
     if not data or "holdings" not in data:
-        return jsonify({
-            "error": "Missing holdings data"
-        }), 400
+        return jsonify({"error": "Missing holdings data"}), 400
 
     holdings = data["holdings"]
+    language = data.get("language", "en")
+    print("Language received:", language)
+
     portfolio_summary = []
 
-    # Process each holding
     for holding in holdings:
-
-        ticker = holding.get("ticker")
-        shares = holding.get("shares")
+        ticker    = holding.get("ticker")
+        shares    = holding.get("shares")
         buy_price = holding.get("buyPrice")
 
-        # Skip empty fields
         if not ticker or not shares or not buy_price:
             continue
 
-        # Validate numbers
         try:
-            shares = float(shares)
+            shares    = float(shares)
             buy_price = float(buy_price)
         except ValueError:
             continue
 
-        # Get stock price via yfinance 
         current_price = get_stock_price(ticker)
-
         if current_price is None:
             continue
 
-        # Portfolio calculations
-        current_value = current_price * shares
-        gain_loss = current_value - (buy_price * shares)
-        percent_change = (
-            (current_price - buy_price)
-            / buy_price
-        ) * 100
+        current_value  = current_price * shares
+        gain_loss      = current_value - (buy_price * shares)
+        percent_change = ((current_price - buy_price) / buy_price) * 100
 
-        # Portfolio summary line
         line = (
             f"{ticker}: {shares} shares | "
             f"bought at ${buy_price:.2f} | "
             f"now ${current_price:.2f} | "
-            f"gain/loss: ${gain_loss:+.2f} "
-            f"({percent_change:+.2f}%)"
+            f"gain/loss: ${gain_loss:+.2f} ({percent_change:+.2f}%)"
         )
-
         portfolio_summary.append(line)
 
-    # Handle empty portfolio
     if len(portfolio_summary) == 0:
-        return jsonify({
-            "error": "No valid holdings found. Check your tickers and try again."
-        }), 400
+        error_msg = (
+            "No valid holdings found. Check your tickers and try again."
+            if language == "en"
+            else "No se encontraron inversiones válidas. Verifica los tickers e intenta de nuevo."
+        )
+        return jsonify({"error": error_msg}), 400
 
-    # Build prompt
     summary_text = "\n".join(portfolio_summary)
 
-    prompt = f"""
-You are a helpful financial advisor.
+    if language == "es":
+        prompt = f"""
+Eres un asesor financiero útil. Responde SOLO en español.
+
+Un usuario ha compartido su portafolio de inversiones.
+
+Por favor haz lo siguiente:
+1. Identifica qué inversiones están en riesgo o perdiendo valor
+2. Identifica qué inversiones están funcionando bien
+3. Da recomendaciones claras de comprar, mantener o vender
+4. Mantén tu respuesta amigable para principiantes
+
+Portafolio:
+{summary_text}
+"""
+    else:
+        prompt = f"""
+You are a helpful financial advisor. Respond ONLY in English.
 
 A user has shared their investment portfolio below.
 
@@ -133,7 +137,6 @@ Portfolio:
 {summary_text}
 """
 
-    # Groq API call
     try:
         chat = groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
@@ -141,9 +144,7 @@ Portfolio:
         )
         analysis = chat.choices[0].message.content
 
-        return jsonify({
-            "analysis": analysis
-        })
+        return jsonify({"analysis": analysis})
 
     except Exception as e:
         print("Server Error:", e)
@@ -160,18 +161,15 @@ def stock_lookup():
     ticker = request.args.get("ticker", "").strip().upper()
     period = request.args.get("period", "1mo")
 
-    # Validate period — only allow known yfinance values
     valid_periods = ["1wk", "1mo", "6mo", "1y", "5y"]
     if period not in valid_periods:
         period = "1mo"
 
     if not ticker:
-        return jsonify({
-            "error": "No ticker provided"
-        }), 400
+        return jsonify({"error": "No ticker provided"}), 400
 
     try:
-        stock = yf.Ticker(ticker)
+        stock   = yf.Ticker(ticker)
         history = stock.history(period=period)
 
         if history.empty:
@@ -179,19 +177,16 @@ def stock_lookup():
                 "error": f"Ticker '{ticker}' not found. Check the symbol and try again."
             }), 404
 
-        # Safely get company name — .info can fail on some tickers
         try:
             info = stock.info
             name = info.get("longName") or info.get("shortName") or ticker
         except Exception:
             name = ticker
 
-        # Current price and period stats
         price = round(float(history["Close"].iloc[-1]), 2)
         high  = round(float(history["High"].max()), 2)
         low   = round(float(history["Low"].min()), 2)
 
-        # Build full price history list for the graph
         prices = []
         for date, row in history.iterrows():
             prices.append({

@@ -10,7 +10,6 @@ import {
 } from "chart.js";
 import { Line } from "react-chartjs-2";
 
-// Register the Chart.js components we need
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler);
 
 const PERIODS = [
@@ -21,16 +20,40 @@ const PERIODS = [
     { label: "5Y", value: "5y"  }
 ];
 
-function StockLookup() {
-    const [ticker, setTicker]         = useState("");
-    const [period, setPeriod]         = useState("1mo");
-    const [stockData, setStockData]   = useState(null);
-    const [loading, setLoading]       = useState(false);
-    const [error, setError]           = useState("");
+const translations = {
+    en: {
+        title: "Stock Data",
+        subtitle: "Search Stock Data:",
+        placeholder: "Enter ticker (e.g. AAPL)",
+        searchBtn: "Search",
+        loading: "Loading... ⏳",
+        high: "Period High",
+        low: "Period Low",
+        serverError: "Failed to connect to the server.",
+    },
+    es: {
+        title: "Datos de Acciones",
+        subtitle: "Buscar Datos de Acciones:",
+        placeholder: "Ingresa un ticker (ej. AAPL)",
+        searchBtn: "Buscar",
+        loading: "Cargando... ⏳",
+        high: "Máximo del Período",
+        low: "Mínimo del Período",
+        serverError: "No se pudo conectar al servidor.",
+    }
+};
+
+function StockLookup({ lang }) {
+    const [ticker, setTicker]       = useState("");
+    const [period, setPeriod]       = useState("1mo");
+    const [stockData, setStockData] = useState(null);
+    const [loading, setLoading]     = useState(false);
+    const [error, setError]         = useState("");
+
+    const t = translations[lang] || translations.en;
 
     async function searchStock() {
         const symbol = ticker.trim().toUpperCase();
-
         if (!symbol) return;
 
         setLoading(true);
@@ -50,18 +73,16 @@ function StockLookup() {
             }
 
         } catch (err) {
-            setError("Failed to connect to the server.");
+            setError(t.serverError);
         }
 
         setLoading(false);
     }
 
-    // Allow pressing Enter to search
     function handleKeyDown(e) {
         if (e.key === "Enter") searchStock();
     }
 
-    // Build Chart.js data from the prices array
     function buildChartData(prices) {
         const first  = prices[0].price;
         const last   = prices[prices.length - 1].price;
@@ -110,19 +131,17 @@ function StockLookup() {
 
     return (
         <div>
-            <h1>Stock Data</h1>
-            <h2>Search Stock Data:</h2>
+            <h1>{t.title}</h1>
+            <h2>{t.subtitle}</h2>
 
-            {/* Search input */}
             <input
                 type="text"
-                placeholder="Enter ticker (e.g. AAPL)"
+                placeholder={t.placeholder}
                 value={ticker}
                 onChange={e => setTicker(e.target.value)}
                 onKeyDown={handleKeyDown}
             />
 
-            {/* Period buttons */}
             <div id="period-buttons">
                 {PERIODS.map(p => (
                     <button
@@ -136,13 +155,11 @@ function StockLookup() {
             </div>
 
             <button onClick={searchStock} disabled={loading}>
-                {loading ? "Loading... ⏳" : "Search"}
+                {loading ? t.loading : t.searchBtn}
             </button>
 
-            {/* Error message */}
             {error && <p style={{ color: "red", marginTop: "16px" }}>{error}</p>}
 
-            {/* Stock info + graph */}
             {stockData && (
                 <div>
                     <div id="stock-info">
@@ -151,8 +168,8 @@ function StockLookup() {
                         </h3>
                         <div id="stock-meta">
                             <span className="meta-price">${stockData.price}</span>
-                            <span className="meta-stat">Period High: ${stockData.high}</span>
-                            <span className="meta-stat">Period Low: ${stockData.low}</span>
+                            <span className="meta-stat">{t.high}: ${stockData.high}</span>
+                            <span className="meta-stat">{t.low}: ${stockData.low}</span>
                         </div>
                     </div>
 

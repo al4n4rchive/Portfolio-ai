@@ -1,58 +1,92 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-function Portfolio() {
-    // holdings is an array of { ticker, shares, buyPrice }
+const translations = {
+    en: {
+        title: "Portfolio AI Analyzer",
+        subtitle: "Enter your holdings below:",
+        ticker: "Ticker (e.g. AAPL)",
+        shares: "Shares",
+        buyPrice: "Buy Price",
+        addBtn: "Add Another Holding",
+        analyzeBtn: "Analyze Portfolio",
+        analyzing: "Analyzing... ⏳",
+        analysisTitle: "AI Analysis",
+        emptyError: "Please enter at least one valid holding.",
+        serverError: "Failed to connect to the server.",
+    },
+    es: {
+        title: "Analizador de Portafolio AI",
+        subtitle: "Ingresa tus inversiones:",
+        ticker: "Ticker (ej. AAPL)",
+        shares: "Acciones",
+        buyPrice: "Precio de Compra",
+        addBtn: "Agregar Otra Inversión",
+        analyzeBtn: "Analizar Portafolio",
+        analyzing: "Analizando... ⏳",
+        analysisTitle: "Análisis de IA",
+        emptyError: "Por favor ingresa al menos una inversión válida.",
+        serverError: "No se pudo conectar al servidor.",
+    }
+};
+
+function Portfolio({ lang }) {
     const [holdings, setHoldings] = useState([
         { ticker: "", shares: "", buyPrice: "" }
     ]);
     const [analysis, setAnalysis] = useState("");
     const [loading, setLoading] = useState(false);
 
-    // Update a specific field in a specific holding row
+    const t = translations[lang] || translations.en;
+
+    // Clear analysis when language changes
+    useEffect(() => {
+        setAnalysis("");
+    }, [lang]);
+
     function updateHolding(index, field, value) {
         const updated = [...holdings];
         updated[index][field] = value;
         setHoldings(updated);
     }
 
-    // Add a new empty holding row
     function addHolding() {
         setHoldings([...holdings, { ticker: "", shares: "", buyPrice: "" }]);
     }
 
-    // Remove a holding row by index
     function removeHolding(index) {
         const updated = holdings.filter((_, i) => i !== index);
         setHoldings(updated);
     }
 
-    // Send holdings to Flask and get AI analysis back
     async function analyzePortfolio() {
-
-        // Filter out incomplete rows
         const valid = holdings.filter(
             h => h.ticker && h.shares && h.buyPrice
         );
 
         if (valid.length === 0) {
-            setAnalysis("Please enter at least one valid holding.");
+            setAnalysis(t.emptyError);
             return;
         }
 
         setLoading(true);
         setAnalysis("");
 
+        const payload = {
+            language: lang,
+            holdings: valid.map(h => ({
+                ticker:   h.ticker.trim().toUpperCase(),
+                shares:   parseFloat(h.shares),
+                buyPrice: parseFloat(h.buyPrice)
+            }))
+        };
+
+        console.log("Sending to backend:", payload);
+
         try {
             const res = await fetch("https://portfolio-ai-e1lf.onrender.com/analyze", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    holdings: valid.map(h => ({
-                        ticker:   h.ticker.trim().toUpperCase(),
-                        shares:   parseFloat(h.shares),
-                        buyPrice: parseFloat(h.buyPrice)
-                    }))
-                })
+                body: JSON.stringify(payload)
             });
 
             const data = await res.json();
@@ -64,7 +98,7 @@ function Portfolio() {
             }
 
         } catch (err) {
-            setAnalysis("Failed to connect to the server.");
+            setAnalysis(t.serverError);
         }
 
         setLoading(false);
@@ -72,31 +106,29 @@ function Portfolio() {
 
     return (
         <div>
-            <h1>Portfolio AI Analyzer</h1>
-            <h2>Enter your holdings below:</h2>
+            <h1>{t.title}</h1>
+            <h2>{t.subtitle}</h2>
 
-            {/* Holding rows */}
             {holdings.map((holding, index) => (
                 <div className="holding" key={index}>
                     <input
                         type="text"
-                        placeholder="Ticker (e.g. AAPL)"
+                        placeholder={t.ticker}
                         value={holding.ticker}
                         onChange={e => updateHolding(index, "ticker", e.target.value)}
                     />
                     <input
                         type="number"
-                        placeholder="Shares"
+                        placeholder={t.shares}
                         value={holding.shares}
                         onChange={e => updateHolding(index, "shares", e.target.value)}
                     />
                     <input
                         type="number"
-                        placeholder="Buy Price"
+                        placeholder={t.buyPrice}
                         value={holding.buyPrice}
                         onChange={e => updateHolding(index, "buyPrice", e.target.value)}
                     />
-                    {/* Only show remove button if more than one row */}
                     {holdings.length > 1 && (
                         <button className="remove-btn" onClick={() => removeHolding(index)}>
                             ✕
@@ -105,15 +137,14 @@ function Portfolio() {
                 </div>
             ))}
 
-            <button onClick={addHolding}>Add Another Holding</button>
+            <button onClick={addHolding}>{t.addBtn}</button>
             <button onClick={analyzePortfolio} disabled={loading}>
-                {loading ? "Analyzing... ⏳" : "Analyze Portfolio"}
+                {loading ? t.analyzing : t.analyzeBtn}
             </button>
 
-            {/* AI Analysis result */}
             {analysis && (
                 <div id="results">
-                    <h3>AI Analysis</h3>
+                    <h3>{t.analysisTitle}</h3>
                     <p id="analysis-text">{analysis}</p>
                 </div>
             )}

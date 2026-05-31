@@ -2,23 +2,70 @@ import { useState } from "react";
 import Portfolio from "./components/Portfolio";
 import StockLookup from "./components/StockLookup";
 
+const translations = {
+    en: {
+        title: "Portfolio AI 📈",
+        subtitle: "Click to select an option:",
+        portfolio: "📊 Portfolio AI Analyzer",
+        lookup: "🔍 Current Stock Market Data",
+        coffee: "☕ Buy me a coffee",
+        back: "← Back to Home",
+        langBtn: "🌐 Español",
+    },
+    es: {
+        title: "Portfolio AI 📈",
+        subtitle: "Haz clic para seleccionar una opción:",
+        portfolio: "📊 Analizador de Portafolio AI",
+        lookup: "🔍 Datos del Mercado de Valores",
+        coffee: "☕ Invítame un café",
+        back: "← Volver al Inicio",
+        langBtn: "🌐 English",
+    }
+};
+
 function App() {
     const [page, setPage] = useState("home");
+    const [lang, setLang] = useState("en");
+
+    const t = translations[lang];
+
+    function toggleLang() {
+        setLang(lang === "en" ? "es" : "en");
+    }
 
     return (
         <div className="container">
 
+            {/* Language Toggle */}
+            <div style={{ textAlign: "right" }}>
+                <button
+                    onClick={toggleLang}
+                    style={{
+                        background: "none",
+                        color: "#3498db",
+                        padding: "4px 10px",
+                        fontWeight: "normal",
+                        fontSize: "0.9rem",
+                        border: "1px solid #3498db",
+                        borderRadius: "4px",
+                        marginBottom: "10px"
+                    }}
+                >
+                    {t.langBtn}
+                </button>
+            </div>
+
             {/* HOME PAGE */}
             {page === "home" && (
                 <div>
-                    <h1>Portfolio AI 📈</h1>
-                    <h2>Click to select an option:</h2>
+                    <h1>{t.title}</h1>
+                    <h2>{t.subtitle}</h2>
 
                     <button onClick={() => setPage("portfolio")}>
-                        📊 Portfolio AI Analyzer
+                        {t.portfolio}
                     </button>
                     <button onClick={() => setPage("stocklookup")}>
-                        🔍 Current Stock Market Data
+                        {t.lookup}
                     </button>
 
                     {/* Buy Me a Coffee */}
@@ -29,7 +76,7 @@ function App() {
                             rel="noreferrer"
                             className="coffee-btn"
                         >
-                            ☕ Buy me a coffee
+                            {t.coffee}
                         </a>
                     </div>
                 </div>
@@ -39,9 +86,9 @@ function App() {
             {page === "portfolio" && (
                 <div>
                     <button className="back-btn" onClick={() => setPage("home")}>
-                        ← Back to Home
+                        {t.back}
                     </button>
-                    <Portfolio />
+                    <Portfolio lang={lang} />
                 </div>
             )}
 
@@ -49,9 +96,9 @@ function App() {
             {page === "stocklookup" && (
                 <div>
                     <button className="back-btn" onClick={() => setPage("home")}>
-                        ← Back to Home
+                        {t.back}
                     </button>
-                    <StockLookup />
+                    <StockLookup lang={lang} />
                 </div>
             )}
 
