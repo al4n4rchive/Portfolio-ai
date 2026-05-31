@@ -1,33 +1,42 @@
-# Portfolio AI 📈
+# AIvestor 📈
 
-An AI-powered stock portfolio analyzer and real-time stock lookup tool built with React, Python Flask, yFinance, and Groq AI.
+An AI-powered stock portfolio analyzer, real-time stock lookup, and market prediction tool built with React, Python Flask, yFinance, and Groq AI.
 
-🔗 **Live Demo:** https://portfolio-ai-gamma-indol.vercel.app/
+🔗 **Live Demo:** [https://portfolio-ai-gamma-indol.vercel.app/](https://portfolio-ai-gamma-indol.vercel.app/)
+
 ---
 
 ## Features
 
-### Portfolio AI Analyzer
+### 📊 Portfolio AI Analyzer
 - Enter your stock holdings (ticker, shares, buy price)
 - Fetches real-time prices using yFinance
 - Sends portfolio data to Groq AI (LLaMA 3.3 70B)
 - Returns beginner-friendly buy, hold, or sell recommendations
+- **Follow-up chat** — ask the AI questions about your portfolio after the analysis
 
-### Stock Lookup
+### 🔍 Stock Lookup
 - Search any stock ticker
 - View price history as an interactive line graph
 - Select time periods: 1W, 1M, 6M, 1Y, 5Y
 - Shows current price, period high and period low
+- **AI Prediction** — get a short-term market outlook powered by Groq AI
+- **Follow-up chat** — ask questions about the stock after the prediction
+
+### 🌐 Bilingual Support
+- Full English and Spanish support
+- Switch languages instantly with the toggle button
+- AI responses are generated in the selected language
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React, Vite, Chart.js |
-| Backend | Python, Flask |
-| Data & AI | yFinance, Groq API (LLaMA 3.3 70B) |
+| Layer      | Technology                          |
+|------------|-------------------------------------|
+| Frontend   | React, Vite, Chart.js               |
+| Backend    | Python, Flask                       |
+| Data & AI  | yFinance, Groq API (LLaMA 3.3 70B)  |
 | Deployment | Vercel (frontend), Render (backend) |
 
 ---
@@ -69,7 +78,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Create a `.env` file in the `backend` folder:
+Create a `.env` file in the backend folder:
 ```
 GROQ_API_KEY=your_groq_api_key_here
 ```
@@ -79,7 +88,7 @@ Start Flask:
 python app.py
 ```
 
-Flask runs on http://127.0.0.1:5000
+Flask runs on `http://127.0.0.1:5000`
 
 ### Frontend Setup
 
@@ -89,39 +98,40 @@ npm install
 npm run dev
 ```
 
-React runs on http://localhost:5173
+React runs on `http://localhost:5173`
 
 ---
 
 ## API Endpoints
 
 ### `POST /analyze`
-
 Analyzes a stock portfolio and returns AI feedback.
 
-Request body:
+**Request body:**
 ```json
 {
   "holdings": [
     { "ticker": "AAPL", "shares": 10, "buyPrice": 150.00 }
-  ]
+  ],
+  "language": "en"
 }
 ```
 
-Response:
+**Response:**
 ```json
 {
   "analysis": "AI generated feedback..."
 }
 ```
 
-### `GET /stock_lookup?ticker=AAPL&period=1mo`
+---
 
+### `GET /stock_lookup?ticker=AAPL&period=1mo`
 Returns price history for a stock over a given period.
 
-Valid periods: `1wk`, `1mo`, `6mo`, `1y`, `5y`
+**Valid periods:** `1wk`, `1mo`, `6mo`, `1y`, `5y`
 
-Response:
+**Response:**
 ```json
 {
   "name": "Apple Inc.",
@@ -138,10 +148,58 @@ Response:
 
 ---
 
+### `POST /predict`
+Returns an AI-generated short-term market prediction for a stock.
+
+**Request body:**
+```json
+{
+  "ticker": "AAPL",
+  "name": "Apple Inc.",
+  "prices": [{ "date": "May 01, 2026", "price": 279.88 }],
+  "high": 315.00,
+  "low": 267.89,
+  "period": "1mo",
+  "language": "en"
+}
+```
+
+**Response:**
+```json
+{
+  "prediction": "AI generated market outlook..."
+}
+```
+
+---
+
+### `POST /chat`
+Handles follow-up questions about a portfolio analysis or stock prediction.
+
+**Request body:**
+```json
+{
+  "messages": [
+    { "role": "assistant", "content": "Prior AI analysis..." },
+    { "role": "user", "content": "Should I buy more?" }
+  ],
+  "language": "en"
+}
+```
+
+**Response:**
+```json
+{
+  "reply": "AI response..."
+}
+```
+
+---
+
 ## Deployment
 
 ### Backend → Render
-1. Push `backend` folder to GitHub
+1. Push backend folder to GitHub
 2. Go to [render.com](https://render.com) → New Web Service
 3. Connect your repo
 4. Set start command: `gunicorn app:app`
@@ -150,7 +208,7 @@ Response:
 
 ### Frontend → Vercel
 1. Update fetch URLs in `Portfolio.jsx` and `StockLookup.jsx` to your Render URL
-2. Push `frontend` folder to GitHub
+2. Push frontend folder to GitHub
 3. Go to [vercel.com](https://vercel.com) → New Project
 4. Connect your repo and deploy
 
@@ -161,6 +219,5 @@ Response:
 ## Author
 
 **Alan Martinez**
-
 - GitHub: [@al4n4rchive](https://github.com/al4n4rchive)
-- LinkedIn: [alanmartinez08](https://www.linkedin.com/in/alanmartinez08/)
+- LinkedIn: [alanmartinez08](https://www.linkedin.com/in/alanmartinez08)
