@@ -4,7 +4,7 @@ import StockLookup from "./components/StockLookup";
 
 const translations = {
     en: {
-        title: "Portfolio AI 📈",
+        title: "AIvestor 📈",
         subtitle: "Click to select an option:",
         portfolio: "📊 Portfolio AI Analyzer",
         lookup: "🔍 Current Stock Market Data",
@@ -13,7 +13,7 @@ const translations = {
         langBtn: "🌐 Español",
     },
     es: {
-        title: "Portfolio AI 📈",
+        title: "AIvestor 📈",
         subtitle: "Haz clic para seleccionar una opción:",
         portfolio: "📊 Analizador de Portafolio AI",
         lookup: "🔍 Datos del Mercado de Valores",
@@ -68,7 +68,6 @@ function App() {
                         {t.lookup}
                     </button>
 
-                    {/* Buy Me a Coffee */}
                     <div className="coffee-wrapper">
                         <a
                             href="https://buymeacoffee.com/alanmartinez"
