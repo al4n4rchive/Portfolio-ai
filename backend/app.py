@@ -25,7 +25,6 @@ groq_client = Groq(api_key=groq_key)
 # Flask app
 app = Flask(__name__)
 
-# Allow requests from React dev server
 CORS(app, origins=[
     "http://localhost:5173",
     "https://portfolio-ai-e1lf.onrender.com",
@@ -62,7 +61,6 @@ def analyze():
 
     holdings = data["holdings"]
     language = data.get("language", "en")
-    print("Language received:", language)
 
     portfolio_summary = []
 
@@ -143,11 +141,157 @@ Portfolio:
             messages=[{"role": "user", "content": prompt}]
         )
         analysis = chat.choices[0].message.content
-
         return jsonify({"analysis": analysis})
 
     except Exception as e:
         print("Server Error:", e)
+        return jsonify({
+            "error": "Unexpected server error",
+            "details": str(e)
+        }), 500
+
+
+# Chat route
+@app.route("/chat", methods=["POST"])
+def chat():
+
+    data = request.get_json()
+
+    if not data or "messages" not in data:
+        return jsonify({"error": "Missing messages"}), 400
+
+    language = data.get("language", "en")
+    messages = data["messages"]
+
+    system_prompt = (
+        "You are a helpful financial assistant. You answer questions about stocks, investing, "
+        "personal finance, and market trends in a beginner-friendly way. Keep answers concise and clear. "
+        "Respond ONLY in English."
+        if language == "en"
+        else
+        "Eres un asistente financiero útil. Respondes preguntas sobre acciones, inversiones, "
+        "finanzas personales y tendencias del mercado de forma amigable para principiantes. "
+        "Mantén las respuestas concisas y claras. Responde SOLO en español."
+    )
+
+    try:
+        chat_response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                *[{"role": m["role"], "content": m["content"]} for m in messages]
+            ]
+        )
+
+        reply = chat_response.choices[0].message.content
+        return jsonify({"reply": reply})
+
+    except Exception as e:
+        print("Chat Error:", e)
+        return jsonify({
+            "error": "Unexpected server error",
+            "details": str(e)
+        }), 500
+
+
+# Predict route
+@app.route("/predict", methods=["POST"])
+def predict():
+
+    data = request.get_json()
+
+    if not data or "ticker" not in data or "prices" not in data:
+        return jsonify({"error": "Missing ticker or prices"}), 400
+
+    ticker   = data.get("ticker")
+    name     = data.get("name", ticker)
+    prices   = data.get("prices", [])
+    high     = data.get("high")
+    low      = data.get("low")
+    period   = data.get("period", "1mo")
+    language = data.get("language", "en")
+
+    if len(prices) < 2:
+        return jsonify({"error": "Not enough price data to make a prediction"}), 400
+
+    # Build price summary for the prompt
+    first_price   = prices[0]["price"]
+    last_price    = prices[-1]["price"]
+    first_date    = prices[0]["date"]
+    last_date     = prices[-1]["date"]
+    price_change  = round(last_price - first_price, 2)
+    percent_change = round(((last_price - first_price) / first_price) * 100, 2)
+
+    # Build a readable recent trend (last 5 data points)
+    recent = prices[-5:]
+    recent_str = "\n".join(
+        [f"  {p['date']}: ${p['price']}" for p in recent]
+    )
+
+    if language == "es":
+        prompt = f"""
+Eres un analista financiero experto. Responde SOLO en español.
+
+Analiza los siguientes datos históricos de precios para {name} ({ticker}) 
+y proporciona una predicción del mercado a corto plazo.
+
+Datos del período ({period}):
+- Precio inicial ({first_date}): ${first_price}
+- Precio actual ({last_date}): ${last_price}
+- Cambio: ${price_change:+} ({percent_change:+}%)
+- Máximo del período: ${high}
+- Mínimo del período: ${low}
+
+Precios recientes:
+{recent_str}
+
+Por favor proporciona:
+1. Análisis de la tendencia actual (alcista, bajista o lateral)
+2. Niveles clave a observar (soporte y resistencia)
+3. Perspectiva a corto plazo (próximas 2-4 semanas)
+4. Nivel de riesgo (bajo, medio, alto)
+5. Recomendación breve para principiantes
+
+Sé claro, conciso y amigable para principiantes.
+"""
+    else:
+        prompt = f"""
+You are an expert financial analyst. Respond ONLY in English.
+
+Analyze the following historical price data for {name} ({ticker}) 
+and provide a short-term market prediction.
+
+Period data ({period}):
+- Starting price ({first_date}): ${first_price}
+- Current price ({last_date}): ${last_price}
+- Change: ${price_change:+} ({percent_change:+}%)
+- Period high: ${high}
+- Period low: ${low}
+
+Recent prices:
+{recent_str}
+
+Please provide:
+1. Current trend analysis (bullish, bearish, or sideways)
+2. Key levels to watch (support and resistance)
+3. Short-term outlook (next 2-4 weeks)
+4. Risk level (low, medium, high)
+5. Brief recommendation for beginners
+
+Be clear, concise and beginner friendly.
+"""
+
+    try:
+        chat_response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        prediction = chat_response.choices[0].message.content
+        return jsonify({"prediction": prediction})
+
+    except Exception as e:
+        print("Predict Error:", e)
         return jsonify({
             "error": "Unexpected server error",
             "details": str(e)
