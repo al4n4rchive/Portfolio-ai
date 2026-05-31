@@ -39,7 +39,7 @@ function StockLookup() {
 
         try {
             const res = await fetch(
-                `hhttps://portfolio-ai-e1lf.onrender.com/stock_lookup?ticker=${symbol}&period=${period}`
+                `https://portfolio-ai-e1lf.onrender.com/stock_lookup?ticker=${symbol}&period=${period}`
             );
             const data = await res.json();
 

@@ -145,6 +145,17 @@ button:disabled {
     border-color: #3498db;
 }
 
+.donate-btn {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #FFDD00;
+    color: #000000;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+}
+
 
 /* ── Stock Info ── */
 
