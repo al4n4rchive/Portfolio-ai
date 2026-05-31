@@ -2,8 +2,7 @@
 
 An AI-powered stock portfolio analyzer and real-time stock lookup tool built with React, Python Flask, yFinance, and Groq AI.
 
-🔗 **Live Demo:** https://portfolio-ai-gamma-indol.vercel.app
-
+🔗 **Live Demo:** https://portfolio-ai-gamma-indol.vercel.app/
 ---
 
 ## Features
