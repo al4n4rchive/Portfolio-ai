@@ -9,15 +9,17 @@ const translations = {
         buyPrice: "Buy Price",
         addBtn: "Add Another Holding",
         analyzeBtn: "Analyze Portfolio",
-        analyzing: "Analyzing... ⏳",
+        analyzing: "Analyzing...",
         analysisTitle: "AI Analysis",
         emptyError: "Please enter at least one valid holding.",
-        serverError: "Failed to connect to the server.",
+        serverError: "Failed to connect to the server. Please try again.",
         chatTitle: "Ask a follow-up question",
         chatPlaceholder: "Ask about your portfolio...",
         sendBtn: "Send",
         thinking: "Thinking...",
         chatHint: "Press Enter to send • Shift+Enter for new line",
+        shareBtn: "📋 Copy Analysis",
+        shareCopied: "✅ Copied!",
     },
     es: {
         title: "Analizador de Portafolio AI",
@@ -27,15 +29,17 @@ const translations = {
         buyPrice: "Precio de Compra",
         addBtn: "Agregar Otra Inversión",
         analyzeBtn: "Analizar Portafolio",
-        analyzing: "Analizando... ⏳",
+        analyzing: "Analizando...",
         analysisTitle: "Análisis de IA",
         emptyError: "Por favor ingresa al menos una inversión válida.",
-        serverError: "No se pudo conectar al servidor.",
+        serverError: "No se pudo conectar al servidor. Intenta de nuevo.",
         chatTitle: "Haz una pregunta de seguimiento",
         chatPlaceholder: "Pregunta sobre tu portafolio...",
         sendBtn: "Enviar",
         thinking: "Pensando...",
         chatHint: "Presiona Enter para enviar • Shift+Enter para nueva línea",
+        shareBtn: "📋 Copiar Análisis",
+        shareCopied: "✅ ¡Copiado!",
     }
 };
 
@@ -45,6 +49,8 @@ function Portfolio({ lang }) {
     ]);
     const [analysis, setAnalysis] = useState("");
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [copied, setCopied] = useState(false);
 
     const [chatMessages, setChatMessages] = useState([]);
     const [chatInput, setChatInput] = useState("");
@@ -56,6 +62,7 @@ function Portfolio({ lang }) {
     useEffect(() => {
         setAnalysis("");
         setChatMessages([]);
+        setError("");
     }, [lang]);
 
     useEffect(() => {
@@ -77,18 +84,26 @@ function Portfolio({ lang }) {
         setHoldings(updated);
     }
 
+    function copyAnalysis() {
+        navigator.clipboard.writeText(analysis).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    }
+
     async function analyzePortfolio() {
         const valid = holdings.filter(
             h => h.ticker && h.shares && h.buyPrice
         );
 
         if (valid.length === 0) {
-            setAnalysis(t.emptyError);
+            setError(t.emptyError);
             return;
         }
 
         setLoading(true);
         setAnalysis("");
+        setError("");
         setChatMessages([]);
 
         const payload = {
@@ -110,17 +125,16 @@ function Portfolio({ lang }) {
             const data = await res.json();
 
             if (data.error) {
-                setAnalysis("Error: " + data.error);
+                setError(data.error);
             } else {
                 setAnalysis(data.analysis);
-                // Seed chat history with analysis as context
                 setChatMessages([
                     { role: "assistant", content: data.analysis }
                 ]);
             }
 
         } catch (err) {
-            setAnalysis(t.serverError);
+            setError(t.serverError);
         }
 
         setLoading(false);
@@ -206,26 +220,41 @@ function Portfolio({ lang }) {
 
             <button onClick={addHolding}>{t.addBtn}</button>
             <button onClick={analyzePortfolio} disabled={loading}>
-                {loading ? t.analyzing : t.analyzeBtn}
+                {t.analyzeBtn}
             </button>
+
+            {/* Loading spinner */}
+            {loading && (
+                <div className="spinner-wrapper">
+                    <div className="spinner" />
+                    {t.analyzing}
+                </div>
+            )}
+
+            {/* Error box */}
+            {error && <div className="error-box">⚠️ {error}</div>}
 
             {/* AI Analysis + Follow-up Chat */}
             {analysis && (
                 <div id="results">
-                    <h3>{t.analysisTitle}</h3>
-                    <p id="analysis-text">{analysis}</p>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                        <h3 style={{ margin: 0 }}>{t.analysisTitle}</h3>
+                        <button className="share-btn" onClick={copyAnalysis}>
+                            {copied ? t.shareCopied : t.shareBtn}
+                        </button>
+                    </div>
+                    <p id="analysis-text" style={{ marginTop: "12px" }}>{analysis}</p>
 
                     {/* Follow-up chat */}
                     <div style={{
                         marginTop: "24px",
-                        borderTop: "1px solid #e0e0e0",
+                        borderTop: "1px solid var(--border2)",
                         paddingTop: "16px"
                     }}>
-                        <h4 style={{ color: "#2c3e50", marginBottom: "12px" }}>
+                        <h4 style={{ margin: "0 0 12px 0" }}>
                             💬 {t.chatTitle}
                         </h4>
 
-                        {/* Chat messages — skip first (it's the analysis shown above) */}
                         {chatMessages.length > 1 && (
                             <div style={{
                                 maxHeight: "300px",
@@ -247,8 +276,8 @@ function Portfolio({ lang }) {
                                             borderRadius: msg.role === "user"
                                                 ? "16px 16px 4px 16px"
                                                 : "16px 16px 16px 4px",
-                                            background: msg.role === "user" ? "#3498db" : "#f0f2f5",
-                                            color: msg.role === "user" ? "#ffffff" : "#2c3e50",
+                                            background: msg.role === "user" ? "var(--blue)" : "var(--surface2)",
+                                            color: msg.role === "user" ? "#ffffff" : "var(--text)",
                                             fontSize: "0.9rem",
                                             lineHeight: "1.5",
                                             whiteSpace: "pre-wrap"
@@ -263,8 +292,8 @@ function Portfolio({ lang }) {
                                         <div style={{
                                             padding: "10px 14px",
                                             borderRadius: "16px 16px 16px 4px",
-                                            background: "#f0f2f5",
-                                            color: "#7f8c8d",
+                                            background: "var(--surface2)",
+                                            color: "var(--text2)",
                                             fontSize: "0.9rem"
                                         }}>
                                             {t.thinking}
@@ -276,7 +305,6 @@ function Portfolio({ lang }) {
                             </div>
                         )}
 
-                        {/* Input */}
                         <div style={{ display: "flex", gap: "10px" }}>
                             <textarea
                                 rows={2}
@@ -287,11 +315,13 @@ function Portfolio({ lang }) {
                                 style={{
                                     flex: 1,
                                     padding: "10px 12px",
-                                    border: "1px solid #ccc",
+                                    border: "1px solid var(--border)",
                                     borderRadius: "6px",
                                     fontSize: "0.95rem",
                                     resize: "none",
-                                    fontFamily: "Arial, sans-serif"
+                                    fontFamily: "Arial, sans-serif",
+                                    backgroundColor: "var(--surface)",
+                                    color: "var(--text)"
                                 }}
                             />
                             <button
@@ -302,7 +332,7 @@ function Portfolio({ lang }) {
                                 {chatLoading ? t.thinking : t.sendBtn}
                             </button>
                         </div>
-                        <p style={{ fontSize: "0.78rem", color: "#95a5a6", marginTop: "6px" }}>
+                        <p style={{ fontSize: "0.78rem", color: "var(--text3)", marginTop: "6px" }}>
                             {t.chatHint}
                         </p>
                     </div>

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Portfolio from "./components/Portfolio";
 import StockLookup from "./components/StockLookup";
+import About from "./components/About";
 
 const translations = {
     en: {
@@ -8,24 +9,31 @@ const translations = {
         subtitle: "Click to select an option:",
         portfolio: "📊 Portfolio AI Analyzer",
         lookup: "🔍 Current Stock Market Data",
+        about: "ℹ️ About",
         coffee: "☕ Buy me a coffee",
         back: "← Back to Home",
         langBtn: "🌐 Español",
+        darkBtn: "🌙 Dark",
+        lightBtn: "☀️ Light",
     },
     es: {
         title: "AIvestor 📈",
         subtitle: "Haz clic para seleccionar una opción:",
         portfolio: "📊 Analizador de Portafolio AI",
         lookup: "🔍 Datos del Mercado de Valores",
+        about: "ℹ️ Acerca del cito",
         coffee: "☕ Invítame un café",
         back: "← Volver al Inicio",
         langBtn: "🌐 English",
+        darkBtn: "🌙 Oscuro",
+        lightBtn: "☀️ Claro",
     }
 };
 
 function App() {
     const [page, setPage] = useState("home");
     const [lang, setLang] = useState("en");
+    const [dark, setDark] = useState(false);
 
     const t = translations[lang];
 
@@ -33,24 +41,23 @@ function App() {
         setLang(lang === "en" ? "es" : "en");
     }
 
+    function toggleDark() {
+        setDark(d => !d);
+    }
+
+    useEffect(() => {
+        document.body.classList.toggle("dark", dark);
+    }, [dark]);
+
     return (
         <div className="container">
 
-            {/* Language Toggle */}
-            <div style={{ textAlign: "right" }}>
-                <button
-                    onClick={toggleLang}
-                    style={{
-                        background: "none",
-                        color: "#3498db",
-                        padding: "4px 10px",
-                        fontWeight: "normal",
-                        fontSize: "0.9rem",
-                        border: "1px solid #3498db",
-                        borderRadius: "4px",
-                        marginBottom: "10px"
-                    }}
-                >
+            {/* Top bar */}
+            <div className="top-bar">
+                <button className="top-bar-btn" onClick={toggleDark}>
+                    {dark ? t.lightBtn : t.darkBtn}
+                </button>
+                <button className="top-bar-btn" onClick={toggleLang}>
                     {t.langBtn}
                 </button>
             </div>
@@ -66,6 +73,10 @@ function App() {
                     </button>
                     <button onClick={() => setPage("stocklookup")}>
                         {t.lookup}
+                    </button>
+                    <button onClick={() => setPage("about")}
+                        style={{ backgroundColor: "#7f8c8d" }}>
+                        {t.about}
                     </button>
 
                     <div className="coffee-wrapper">
@@ -98,6 +109,16 @@ function App() {
                         {t.back}
                     </button>
                     <StockLookup lang={lang} />
+                </div>
+            )}
+
+            {/* ABOUT PAGE */}
+            {page === "about" && (
+                <div>
+                    <button className="back-btn" onClick={() => setPage("home")}>
+                        {t.back}
+                    </button>
+                    <About lang={lang} />
                 </div>
             )}
 
