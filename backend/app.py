@@ -17,7 +17,7 @@ load_dotenv(
 )
 
 # API Keys
-groq_key = os.getenv("GROQ_API_KEY")
+groq_key    = os.getenv("GROQ_API_KEY")
 
 # Groq client
 groq_client = Groq(api_key=groq_key)
@@ -54,7 +54,6 @@ def get_stock_price(ticker):
 def analyze():
 
     data = request.get_json()
-    print("Received data:", data)
 
     if not data or "holdings" not in data:
         return jsonify({"error": "Missing holdings data"}), 400
@@ -214,15 +213,13 @@ def predict():
     if len(prices) < 2:
         return jsonify({"error": "Not enough price data to make a prediction"}), 400
 
-    # Build price summary for the prompt
-    first_price   = prices[0]["price"]
-    last_price    = prices[-1]["price"]
-    first_date    = prices[0]["date"]
-    last_date     = prices[-1]["date"]
-    price_change  = round(last_price - first_price, 2)
+    first_price    = prices[0]["price"]
+    last_price     = prices[-1]["price"]
+    first_date     = prices[0]["date"]
+    last_date      = prices[-1]["date"]
+    price_change   = round(last_price - first_price, 2)
     percent_change = round(((last_price - first_price) / first_price) * 100, 2)
 
-    # Build a readable recent trend (last 5 data points)
     recent = prices[-5:]
     recent_str = "\n".join(
         [f"  {p['date']}: ${p['price']}" for p in recent]
@@ -232,7 +229,7 @@ def predict():
         prompt = f"""
 Eres un analista financiero experto. Responde SOLO en español.
 
-Analiza los siguientes datos históricos de precios para {name} ({ticker}) 
+Analiza los siguientes datos históricos de precios para {name} ({ticker})
 y proporciona una predicción del mercado a corto plazo.
 
 Datos del período ({period}):
@@ -251,14 +248,12 @@ Por favor proporciona:
 3. Perspectiva a corto plazo (próximas 2-4 semanas)
 4. Nivel de riesgo (bajo, medio, alto)
 5. Recomendación breve para principiantes
-
-Sé claro, conciso y amigable para principiantes.
 """
     else:
         prompt = f"""
 You are an expert financial analyst. Respond ONLY in English.
 
-Analyze the following historical price data for {name} ({ticker}) 
+Analyze the following historical price data for {name} ({ticker})
 and provide a short-term market prediction.
 
 Period data ({period}):
@@ -277,8 +272,6 @@ Please provide:
 3. Short-term outlook (next 2-4 weeks)
 4. Risk level (low, medium, high)
 5. Brief recommendation for beginners
-
-Be clear, concise and beginner friendly.
 """
 
     try:
@@ -286,7 +279,6 @@ Be clear, concise and beginner friendly.
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}]
         )
-
         prediction = chat_response.choices[0].message.content
         return jsonify({"prediction": prediction})
 

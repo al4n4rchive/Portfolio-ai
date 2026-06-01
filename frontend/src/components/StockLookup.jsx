@@ -1,16 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    Tooltip,
-    Filler
+    Chart as ChartJS, CategoryScale, LinearScale,
+    PointElement, LineElement, Tooltip, Filler
 } from "chart.js";
 import { Line } from "react-chartjs-2";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler);
+
+const BASE_URL = "https://portfolio-ai-e1lf.onrender.com";
 
 const PERIODS = [
     { label: "1W", value: "1wk" },
@@ -26,146 +23,160 @@ const translations = {
         subtitle: "Search Stock Data:",
         placeholder: "Enter ticker (e.g. AAPL)",
         searchBtn: "Search",
-        loading: "Loading...",
+        loading: "Loading... ⏳",
         high: "Period High",
         low: "Period Low",
-        serverError: "Failed to connect to the server. Please try again.",
-        predictBtn: "🔮 Predict Future Price",
-        predicting: "Predicting...",
-        predictionTitle: "AI Price Prediction",
-        predictionSubtitle: "Based on historical data — not financial advice.",
-        shareBtn: "📋 Copy Prediction",
-        shareCopied: "✅ Copied!",
-        chatTitle: "Ask a follow-up question",
-        chatPlaceholder: "Ask about this stock...",
+        serverError: "Failed to connect to the server.",
+        predictBtn: "Predection🔮",
+        predicting: "Analyzing... ⏳",
+        predictingNote: "This may take a moment while the AI analyzes the data.",
+        predictionTitle: "AI Prediction",
+        disclaimer: "⚠️ This is not financial advice. AI predictions are for educational purposes only.",
+        chatTitle: "Ask about this stock",
+        chatPlaceholder: "Ask anything about this stock...",
         sendBtn: "Send",
         thinking: "Thinking...",
         chatHint: "Press Enter to send • Shift+Enter for new line",
+        shareBtn: "📤 Share Prediction",
+        copied: "✅ Copied!",
+        watchlistTitle: "⭐ Watchlist",
+        addWatch: "Add to Watchlist",
+        removeWatch: "Remove",
     },
     es: {
         title: "Datos de Acciones",
         subtitle: "Buscar Datos de Acciones:",
         placeholder: "Ingresa un ticker (ej. AAPL)",
         searchBtn: "Buscar",
-        loading: "Cargando...",
+        loading: "Cargando... ⏳",
         high: "Máximo del Período",
         low: "Mínimo del Período",
-        serverError: "No se pudo conectar al servidor. Intenta de nuevo.",
-        predictBtn: "🔮 Predecir Precio Futuro",
-        predicting: "Prediciendo...",
-        predictionTitle: "Predicción de Precio AI",
-        predictionSubtitle: "Basado en datos históricos — no es asesoramiento financiero.",
-        shareBtn: "📋 Copiar Predicción",
-        shareCopied: "✅ ¡Copiado!",
-        chatTitle: "Haz una pregunta de seguimiento",
-        chatPlaceholder: "Pregunta sobre esta acción...",
+        serverError: "No se pudo conectar al servidor.",
+        predictBtn: "🤖 Obtener Predicción AI",
+        predicting: "Analizando... ⏳",
+        predictingNote: "Esto puede tardar un momento mientras la IA analiza los datos.",
+        predictionTitle: "Predicción 🔮",
+        disclaimer: "⚠️ Esto no es asesoramiento financiero. Las predicciones de IA son solo con fines educativos.",
+        chatTitle: "Pregunta sobre esta acción",
+        chatPlaceholder: "Pregunta lo que quieras sobre esta acción...",
         sendBtn: "Enviar",
         thinking: "Pensando...",
         chatHint: "Presiona Enter para enviar • Shift+Enter para nueva línea",
+        shareBtn: "📤 Compartir Predicción",
+        copied: "✅ Copiado!",
+        watchlistTitle: "⭐ Lista de Seguimiento",
+        addWatch: "Agregar",
+        removeWatch: "Eliminar",
     }
 };
 
 function StockLookup({ lang }) {
-    const [ticker, setTicker]           = useState("");
-    const [period, setPeriod]           = useState("1mo");
-    const [stockData, setStockData]     = useState(null);
-    const [loading, setLoading]         = useState(false);
-    const [error, setError]             = useState("");
-    const [prediction, setPrediction]   = useState("");
-    const [predLoading, setPredLoading] = useState(false);
-    const [predError, setPredError]     = useState("");
-    const [copied, setCopied]           = useState(false);
-
-    // Chat state
+    const [ticker, setTicker]             = useState("");
+    const [period, setPeriod]             = useState("1mo");
+    const [stockData, setStockData]       = useState(null);
+    const [loading, setLoading]           = useState(false);
+    const [error, setError]               = useState("");
+    const [prediction, setPrediction]     = useState("");
+    const [predicting, setPredicting]     = useState(false);
+    const [copied, setCopied]             = useState(false);
+    const [watchlist, setWatchlist]       = useState([]);
+    const [news, setNews]                 = useState([]);
+    const [fearGreed, setFearGreed]       = useState(null);
     const [chatMessages, setChatMessages] = useState([]);
     const [chatInput, setChatInput]       = useState("");
     const [chatLoading, setChatLoading]   = useState(false);
-    const bottomRef = useRef(null);
+    const bottomRef                       = useRef(null);
 
     const t = translations[lang] || translations.en;
+
+    // Load watchlist from localStorage
+    useEffect(() => {
+        const saved = localStorage.getItem("watchlist");
+        if (saved) setWatchlist(JSON.parse(saved));
+    }, []);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [chatMessages]);
 
-    async function searchStock() {
-        const symbol = ticker.trim().toUpperCase();
+    async function searchStock(overrideTicker) {
+        const symbol = (overrideTicker || ticker).trim().toUpperCase();
         if (!symbol) return;
 
+        setTicker(symbol);
         setLoading(true);
         setError("");
         setStockData(null);
         setPrediction("");
-        setPredError("");
         setChatMessages([]);
+        setNews([]);
 
         try {
-            const res = await fetch(
-                `https://portfolio-ai-e1lf.onrender.com/stock_lookup?ticker=${symbol}&period=${period}`
-            );
+            const res  = await fetch(`${BASE_URL}/stock_lookup?ticker=${symbol}&period=${period}`);
             const data = await res.json();
 
             if (data.error) {
                 setError(data.error);
             } else {
                 setStockData(data);
+                fetchNews(symbol);
             }
-
-        } catch (err) {
+        } catch {
             setError(t.serverError);
         }
 
         setLoading(false);
     }
 
-    async function predictPrice() {
+    async function fetchNews(symbol) {
+        try {
+            const res  = await fetch(`${BASE_URL}/news?ticker=${symbol}`);
+            const data = await res.json();
+            if (!data.error) setNews(data.articles || []);
+        } catch {}
+    }
+
+    async function getPrediction() {
         if (!stockData) return;
 
-        setPredLoading(true);
+        setPredicting(true);
         setPrediction("");
-        setPredError("");
         setChatMessages([]);
 
         try {
-            const res = await fetch("https://portfolio-ai-e1lf.onrender.com/predict", {
+            const res  = await fetch(`${BASE_URL}/predict`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    language: lang,
-                    ticker: stockData.ticker,
-                    name: stockData.name,
-                    current_price: stockData.price,
-                    high: stockData.high,
-                    low: stockData.low,
-                    period: stockData.period,
-                    prices: stockData.prices
+                    ticker:   stockData.ticker,
+                    name:     stockData.name,
+                    prices:   stockData.prices,
+                    high:     stockData.high,
+                    low:      stockData.low,
+                    period:   stockData.period,
+                    language: lang
                 })
             });
-
             const data = await res.json();
 
             if (data.error) {
-                setPredError(data.error);
+                setPrediction("Error: " + data.error);
             } else {
                 setPrediction(data.prediction);
-                // Seed chat with prediction as context
-                setChatMessages([
-                    { role: "assistant", content: data.prediction }
-                ]);
+                setChatMessages([{ role: "assistant", content: data.prediction }]);
             }
-
-        } catch (err) {
-            setPredError(t.serverError);
+        } catch {
+            setPrediction(t.serverError);
         }
 
-        setPredLoading(false);
+        setPredicting(false);
     }
 
     async function sendChatMessage() {
         const text = chatInput.trim();
         if (!text || chatLoading) return;
 
-        const userMessage = { role: "user", content: text };
+        const userMessage     = { role: "user", content: text };
         const updatedMessages = [...chatMessages, userMessage];
 
         setChatMessages(updatedMessages);
@@ -173,30 +184,26 @@ function StockLookup({ lang }) {
         setChatLoading(true);
 
         try {
-            const res = await fetch("https://portfolio-ai-e1lf.onrender.com/chat", {
+            const res  = await fetch(`${BASE_URL}/chat`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    language: lang,
-                    messages: updatedMessages
-                })
+                body: JSON.stringify({ language: lang, messages: updatedMessages })
             });
-
             const data = await res.json();
 
             setChatMessages([...updatedMessages, {
                 role: "assistant",
                 content: data.error ? "Error: " + data.error : data.reply
             }]);
-
-        } catch (err) {
-            setChatMessages([...updatedMessages, {
-                role: "assistant",
-                content: t.serverError
-            }]);
+        } catch {
+            setChatMessages([...updatedMessages, { role: "assistant", content: t.serverError }]);
         }
 
         setChatLoading(false);
+    }
+
+    function handleKeyDown(e) {
+        if (e.key === "Enter") searchStock();
     }
 
     function handleChatKeyDown(e) {
@@ -206,34 +213,41 @@ function StockLookup({ lang }) {
         }
     }
 
-    function copyPrediction() {
-        navigator.clipboard.writeText(prediction).then(() => {
+    function sharePrediction() {
+        if (!stockData || !prediction) return;
+        const text = `AIvestor Prediction 📈\n\n${stockData.name} (${stockData.ticker}) — ${stockData.period}\nCurrent Price: $${stockData.price}\nPeriod High: $${stockData.high} | Period Low: $${stockData.low}\n\nAI Outlook:\n${prediction}\n\nGenerated by AIvestor\nhttps://portfolio-ai-gamma-indol.vercel.app`;
+
+        navigator.clipboard.writeText(text).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         });
     }
 
-    function handleKeyDown(e) {
-        if (e.key === "Enter") searchStock();
+    function addToWatchlist() {
+        if (!stockData || watchlist.includes(stockData.ticker)) return;
+        const updated = [...watchlist, stockData.ticker];
+        setWatchlist(updated);
+        localStorage.setItem("watchlist", JSON.stringify(updated));
+    }
+
+    function removeFromWatchlist(t) {
+        const updated = watchlist.filter(w => w !== t);
+        setWatchlist(updated);
+        localStorage.setItem("watchlist", JSON.stringify(updated));
     }
 
     function buildChartData(prices) {
-        const first  = prices[0].price;
-        const last   = prices[prices.length - 1].price;
-        const isUp   = last >= first;
-        const color  = isUp ? "#2ecc71" : "#e74c3c";
-        const fill   = isUp ? "rgba(46,204,113,0.1)" : "rgba(231,76,60,0.1)";
-
+        const first = prices[0].price;
+        const last  = prices[prices.length - 1].price;
+        const isUp  = last >= first;
+        const color = isUp ? "#2ecc71" : "#e74c3c";
+        const fill  = isUp ? "rgba(46,204,113,0.1)" : "rgba(231,76,60,0.1)";
         return {
             labels: prices.map(p => p.date),
             datasets: [{
-                data:            prices.map(p => p.price),
-                borderColor:     color,
-                backgroundColor: fill,
-                borderWidth:     2,
-                pointRadius:     0,
-                tension:         0.3,
-                fill:            true
+                data: prices.map(p => p.price),
+                borderColor: color, backgroundColor: fill,
+                borderWidth: 2, pointRadius: 0, tension: 0.3, fill: true
             }]
         };
     }
@@ -242,32 +256,39 @@ function StockLookup({ lang }) {
         responsive: true,
         plugins: {
             legend: { display: false },
-            tooltip: {
-                callbacks: {
-                    label: ctx => "$" + ctx.parsed.y.toFixed(2)
-                }
-            }
+            tooltip: { callbacks: { label: ctx => "$" + ctx.parsed.y.toFixed(2) } }
         },
         scales: {
-            x: {
-                ticks: { maxTicksLimit: 6, color: "#7f8c8d" },
-                grid:  { display: false }
-            },
-            y: {
-                ticks: {
-                    color: "#7f8c8d",
-                    callback: val => "$" + val
-                },
-                grid: { color: "rgba(0,0,0,0.05)" }
-            }
+            x: { ticks: { maxTicksLimit: 6, color: "#7f8c8d" }, grid: { display: false } },
+            y: { ticks: { color: "#7f8c8d", callback: val => "$" + val }, grid: { color: "rgba(0,0,0,0.05)" } }
         }
     };
+
+    const isInWatchlist = stockData && watchlist.includes(stockData.ticker);
 
     return (
         <div>
             <h1>{t.title}</h1>
             <h2>{t.subtitle}</h2>
 
+            {/* Watchlist */}
+            <div className="watchlist-section">
+                <h4 className="watchlist-title">{t.watchlistTitle}</h4>
+                {watchlist.length === 0 ? (
+                    <p className="watchlist-empty">{t.noWatchlist}</p>
+                ) : (
+                    <div className="watchlist-tags">
+                        {watchlist.map(w => (
+                            <div key={w} className="watchlist-tag">
+                                <span onClick={() => searchStock(w)} className="watchlist-ticker">{w}</span>
+                                <button className="watchlist-remove" onClick={() => removeFromWatchlist(w)}>✕</button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Search */}
             <input
                 type="text"
                 placeholder={t.placeholder}
@@ -278,37 +299,32 @@ function StockLookup({ lang }) {
 
             <div id="period-buttons">
                 {PERIODS.map(p => (
-                    <button
-                        key={p.value}
-                        className={period === p.value ? "active" : ""}
-                        onClick={() => setPeriod(p.value)}
-                    >
+                    <button key={p.value} className={period === p.value ? "active" : ""} onClick={() => setPeriod(p.value)}>
                         {p.label}
                     </button>
                 ))}
             </div>
 
-            <button onClick={searchStock} disabled={loading}>
-                {t.searchBtn}
+            <button onClick={() => searchStock()} disabled={loading}>
+                {loading ? t.loading : t.searchBtn}
             </button>
+
+            {/* Error */}
+            {error && <div className="error-box"><span>⚠️</span> {error}</div>}
 
             {/* Loading spinner */}
             {loading && (
-                <div className="spinner-wrapper">
+                <div className="loading-wrapper">
                     <div className="spinner" />
-                    {t.loading}
+                    <p className="loading-text">{t.loading}</p>
                 </div>
             )}
 
-            {/* Error box */}
-            {error && <div className="error-box">⚠️ {error}</div>}
-
+            {/* Stock info + graph */}
             {stockData && (
                 <div>
                     <div id="stock-info">
-                        <h3 id="stock-name">
-                            {stockData.name} ({stockData.ticker})
-                        </h3>
+                        <h3 id="stock-name">{stockData.name} ({stockData.ticker})</h3>
                         <div id="stock-meta">
                             <span className="meta-price">${stockData.price}</span>
                             <span className="meta-stat">{t.high}: ${stockData.high}</span>
@@ -317,143 +333,92 @@ function StockLookup({ lang }) {
                     </div>
 
                     <div id="chart-container">
-                        <Line
-                            data={buildChartData(stockData.prices)}
-                            options={chartOptions}
-                        />
+                        <Line data={buildChartData(stockData.prices)} options={chartOptions} />
                     </div>
 
-                    {/* Prediction section */}
-                    <div style={{ marginTop: "24px" }}>
-                        <button
-                            onClick={predictPrice}
-                            disabled={predLoading}
-                            style={{ backgroundColor: "var(--purple)" }}
-                        >
-                            {predLoading ? t.predicting : t.predictBtn}
-                        </button>
+                    {/* Watchlist button */}
+                    <button
+                        onClick={isInWatchlist ? () => removeFromWatchlist(stockData.ticker) : addToWatchlist}
+                        style={{ marginTop: "12px", background: isInWatchlist ? "#f39c12" : "#3498db" }}
+                    >
+                        {isInWatchlist ? `⭐ ${t.removeWatch}` : `⭐ ${t.addWatch}`}
+                    </button>
 
-                        {predLoading && (
-                            <div className="spinner-wrapper">
-                                <div className="spinner" style={{ borderTopColor: "var(--purple)" }} />
-                                {t.predicting}
-                            </div>
-                        )}
+                    {/* Prediction button */}
+                    <button onClick={getPrediction} disabled={predicting} style={{ marginTop: "20px" }}>
+                        {predicting ? t.predicting : t.predictBtn}
+                    </button>
 
-                        {predError && <div className="error-box">⚠️ {predError}</div>}
+                    {/* Predicting spinner */}
+                    {predicting && (
+                        <div className="loading-wrapper">
+                            <div className="spinner" />
+                            <p className="loading-text">{t.predicting}</p>
+                            <p className="loading-subtext">{t.predictingNote}</p>
+                        </div>
+                    )}
 
-                        {prediction && (
-                            <div id="results" style={{ marginTop: "16px", borderLeft: "5px solid var(--purple)" }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
-                                    <h3 style={{ margin: 0 }}>{t.predictionTitle}</h3>
-                                    <button className="share-btn" onClick={copyPrediction}>
-                                        {copied ? t.shareCopied : t.shareBtn}
+                    {/* Prediction result */}
+                    {prediction && (
+                        <div id="results" style={{ marginTop: "16px" }}>
+                            <h3>{t.predictionTitle}</h3>
+                            <p id="analysis-text">{prediction}</p>
+                            <p style={{ fontSize: "0.8rem", color: "#e67e22", marginTop: "12px", fontStyle: "italic" }}>
+                                {t.disclaimer}
+                            </p>
+
+                            {/* Share button */}
+                            <button className={`share-btn ${copied ? "copied" : ""}`} onClick={sharePrediction}>
+                                {copied ? t.copied : t.shareBtn}
+                            </button>
+
+                            {/* Chat */}
+                            <div style={{ marginTop: "24px", borderTop: "1px solid #e0e0e0", paddingTop: "16px" }}>
+                                <h4 style={{ color: "#2c3e50", marginBottom: "12px" }}>💬 {t.chatTitle}</h4>
+
+                                {chatMessages.length > 1 && (
+                                    <div style={{ maxHeight: "300px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "10px", marginBottom: "12px", padding: "4px" }}>
+                                        {chatMessages.slice(1).map((msg, i) => (
+                                            <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
+                                                <div style={{
+                                                    maxWidth: "80%", padding: "10px 14px",
+                                                    borderRadius: msg.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
+                                                    background: msg.role === "user" ? "#3498db" : "#f0f2f5",
+                                                    color: msg.role === "user" ? "#ffffff" : "#2c3e50",
+                                                    fontSize: "0.9rem", lineHeight: "1.5", whiteSpace: "pre-wrap"
+                                                }}>
+                                                    {msg.content}
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {chatLoading && (
+                                            <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                                                <div style={{ padding: "10px 14px", borderRadius: "16px 16px 16px 4px", background: "#f0f2f5", color: "#7f8c8d", fontSize: "0.9rem" }}>
+                                                    {t.thinking}
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div ref={bottomRef} />
+                                    </div>
+                                )}
+
+                                <div style={{ display: "flex", gap: "10px" }}>
+                                    <textarea
+                                        rows={2}
+                                        placeholder={t.chatPlaceholder}
+                                        value={chatInput}
+                                        onChange={e => setChatInput(e.target.value)}
+                                        onKeyDown={handleChatKeyDown}
+                                        style={{ flex: 1, padding: "10px 12px", border: "1px solid #ccc", borderRadius: "6px", fontSize: "0.95rem", resize: "none", fontFamily: "Arial, sans-serif" }}
+                                    />
+                                    <button onClick={sendChatMessage} disabled={chatLoading || !chatInput.trim()} style={{ alignSelf: "flex-end", margin: 0 }}>
+                                        {chatLoading ? t.thinking : t.sendBtn}
                                     </button>
                                 </div>
-                                <p style={{
-                                    fontSize: "0.78rem",
-                                    color: "var(--text3)",
-                                    margin: "8px 0 12px",
-                                    fontStyle: "italic"
-                                }}>
-                                    ⚠️ {t.predictionSubtitle}
-                                </p>
-                                <p id="analysis-text">{prediction}</p>
-
-                                {/* Follow-up chat after prediction */}
-                                <div style={{
-                                    marginTop: "24px",
-                                    borderTop: "1px solid var(--border2)",
-                                    paddingTop: "16px"
-                                }}>
-                                    <h4 style={{ margin: "0 0 12px 0" }}>
-                                        💬 {t.chatTitle}
-                                    </h4>
-
-                                    {chatMessages.length > 1 && (
-                                        <div style={{
-                                            maxHeight: "300px",
-                                            overflowY: "auto",
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            gap: "10px",
-                                            marginBottom: "12px",
-                                            padding: "4px"
-                                        }}>
-                                            {chatMessages.slice(1).map((msg, i) => (
-                                                <div key={i} style={{
-                                                    display: "flex",
-                                                    justifyContent: msg.role === "user" ? "flex-end" : "flex-start"
-                                                }}>
-                                                    <div style={{
-                                                        maxWidth: "80%",
-                                                        padding: "10px 14px",
-                                                        borderRadius: msg.role === "user"
-                                                            ? "16px 16px 4px 16px"
-                                                            : "16px 16px 16px 4px",
-                                                        background: msg.role === "user" ? "var(--blue)" : "var(--surface2)",
-                                                        color: msg.role === "user" ? "#ffffff" : "var(--text)",
-                                                        fontSize: "0.9rem",
-                                                        lineHeight: "1.5",
-                                                        whiteSpace: "pre-wrap"
-                                                    }}>
-                                                        {msg.content}
-                                                    </div>
-                                                </div>
-                                            ))}
-
-                                            {chatLoading && (
-                                                <div style={{ display: "flex", justifyContent: "flex-start" }}>
-                                                    <div style={{
-                                                        padding: "10px 14px",
-                                                        borderRadius: "16px 16px 16px 4px",
-                                                        background: "var(--surface2)",
-                                                        color: "var(--text2)",
-                                                        fontSize: "0.9rem"
-                                                    }}>
-                                                        {t.thinking}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            <div ref={bottomRef} />
-                                        </div>
-                                    )}
-
-                                    <div style={{ display: "flex", gap: "10px" }}>
-                                        <textarea
-                                            rows={2}
-                                            placeholder={t.chatPlaceholder}
-                                            value={chatInput}
-                                            onChange={e => setChatInput(e.target.value)}
-                                            onKeyDown={handleChatKeyDown}
-                                            style={{
-                                                flex: 1,
-                                                padding: "10px 12px",
-                                                border: "1px solid var(--border)",
-                                                borderRadius: "6px",
-                                                fontSize: "0.95rem",
-                                                resize: "none",
-                                                fontFamily: "Arial, sans-serif",
-                                                backgroundColor: "var(--surface)",
-                                                color: "var(--text)"
-                                            }}
-                                        />
-                                        <button
-                                            onClick={sendChatMessage}
-                                            disabled={chatLoading || !chatInput.trim()}
-                                            style={{ alignSelf: "flex-end", margin: 0 }}
-                                        >
-                                            {chatLoading ? t.thinking : t.sendBtn}
-                                        </button>
-                                    </div>
-                                    <p style={{ fontSize: "0.78rem", color: "var(--text3)", marginTop: "6px" }}>
-                                        {t.chatHint}
-                                    </p>
-                                </div>
+                                <p style={{ fontSize: "0.78rem", color: "#95a5a6", marginTop: "6px" }}>{t.chatHint}</p>
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
