@@ -28,6 +28,12 @@ An AI-powered stock portfolio analyzer, real-time stock lookup, and market predi
 - Switch languages instantly with the toggle button
 - AI responses are generated in the selected language
 
+### 🌙 Dark Mode
+- Toggle between light and dark themes
+
+### ℹ️ About Page
+- App info, disclaimer, tech stack, and author links
+
 ---
 
 ## Tech Stack
@@ -52,6 +58,7 @@ Portfolio-ai/
 └── frontend/
     ├── src/
     │   ├── components/
+    │   │   ├── About.jsx
     │   │   ├── Portfolio.jsx
     │   │   └── StockLookup.jsx
     │   ├── App.jsx
@@ -199,18 +206,20 @@ Handles follow-up questions about a portfolio analysis or stock prediction.
 ## Deployment
 
 ### Backend → Render
-1. Push backend folder to GitHub
+1. Push `backend` folder to GitHub
 2. Go to [render.com](https://render.com) → New Web Service
 3. Connect your repo
-4. Set start command: `gunicorn app:app`
-5. Add environment variable: `GROQ_API_KEY`
-6. Deploy and copy the live URL
+4. Set root directory: `backend`
+5. Set start command: `gunicorn app:app`
+6. Add environment variable: `GROQ_API_KEY`
+7. Deploy and copy the live URL
 
 ### Frontend → Vercel
 1. Update fetch URLs in `Portfolio.jsx` and `StockLookup.jsx` to your Render URL
-2. Push frontend folder to GitHub
+2. Push `frontend` folder to GitHub
 3. Go to [vercel.com](https://vercel.com) → New Project
-4. Connect your repo and deploy
+4. Set root directory: `frontend`
+5. Connect your repo and deploy
 
 > ⚠️ Render's free tier spins down after inactivity. The first request may take 30–60 seconds to wake the server.
 
@@ -221,3 +230,4 @@ Handles follow-up questions about a portfolio analysis or stock prediction.
 **Alan Martinez**
 - GitHub: [@al4n4rchive](https://github.com/al4n4rchive)
 - LinkedIn: [alanmartinez08](https://www.linkedin.com/in/alanmartinez08)
+- ☕ [Buy me a coffee](https://buymeacoffee.com/alanmartinez)
