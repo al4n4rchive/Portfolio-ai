@@ -27,11 +27,14 @@ const translations = {
         thinking: "Thinking...",
         chatHint: "Press Enter to send • Shift+Enter for new line",
         shareBtn: "📤 Share Analysis",
+        shareLinkBtn: "🔗 Share Link",
+        shareLinkCopied: "✅ Link Copied!",
         copied: "✅ Copied!",
         historyTitle: "📋 Past Analyses",
         clearHistory: "Clear History",
         pieTitle: "Portfolio Breakdown",
         sectorTitle: "Sector Exposure",
+        fearGreedTitle: "Market Sentiment",
         showFull: "Read Full Analysis ▼",
         hideFull: "Collapse ▲",
         continueChat: "Continue Chat ▼",
@@ -63,11 +66,14 @@ const translations = {
         thinking: "Pensando...",
         chatHint: "Presiona Enter para enviar • Shift+Enter para nueva línea",
         shareBtn: "📤 Compartir Análisis",
+        shareLinkBtn: "🔗 Compartir Link",
+        shareLinkCopied: "✅ ¡Link Copiado!",
         copied: "✅ Copiado!",
         historyTitle: "📋 Análisis Anteriores",
         clearHistory: "Borrar Historial",
         pieTitle: "Distribución del Portafolio",
         sectorTitle: "Exposición por Sector",
+        fearGreedTitle: "Sentimiento del Mercado",
         showFull: "Leer Análisis Completo ▼",
         hideFull: "Colapsar ▲",
         continueChat: "Continuar Chat ▼",
@@ -103,11 +109,13 @@ function Portfolio({ lang }) {
     const [loading, setLoading]                   = useState(false);
     const [error, setError]                       = useState("");
     const [copied, setCopied]                     = useState(false);
+    const [linkCopied, setLinkCopied]             = useState(false);
     const [history, setHistory]                   = useState([]);
     const [expandedIndex, setExpandedIndex]       = useState(null);
     const [chatExpandedIndex, setChatExpandedIndex] = useState(null);
     const [pieData, setPieData]                   = useState(null);
     const [holdingsPieData, setHoldingsPieData]   = useState(null);
+    const [fearGreed, setFearGreed]               = useState(null);
     const [chatMessages, setChatMessages]         = useState([]);
     const [chatInput, setChatInput]               = useState("");
     const [chatLoading, setChatLoading]           = useState(false);
@@ -121,11 +129,38 @@ function Portfolio({ lang }) {
     }, []);
 
     useEffect(() => {
+        fetch(`${BASE_URL}/fear_greed`)
+            .then(r => r.json())
+            .then(data => { if (!data.error) setFearGreed(data); })
+            .catch(() => {});
+    }, []);
+
+    useEffect(() => {
         setAnalysis("");
         setChatMessages([]);
         setError("");
         setMetrics(null);
     }, [lang]);
+
+    // Auto-load holdings from share URL
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const shared = params.get("s");
+        if (shared) {
+            try {
+                const decoded = JSON.parse(atob(shared));
+                if (decoded.holdings && decoded.holdings.length > 0) {
+                    setHoldings(decoded.holdings);
+                    // Auto-analyze after a short delay
+                    setTimeout(() => {
+                        window.history.replaceState({}, "", window.location.pathname);
+                    }, 100);
+                }
+            } catch (e) {
+                console.error("Invalid share link");
+            }
+        }
+    }, []);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -311,6 +346,28 @@ function Portfolio({ lang }) {
         });
     }
 
+    function shareLink() {
+        const valid = holdings.filter(h => h.ticker && h.shares && h.buyPrice);
+        if (valid.length === 0) return;
+
+        const payload = {
+            holdings: valid.map(h => ({
+                ticker:   h.ticker.trim().toUpperCase(),
+                shares:   h.shares,
+                buyPrice: h.buyPrice,
+                buyDate:  h.buyDate || ""
+            }))
+        };
+
+        const encoded = btoa(JSON.stringify(payload));
+        const url     = `${window.location.origin}${window.location.pathname}?s=${encoded}`;
+
+        navigator.clipboard.writeText(url).then(() => {
+            setLinkCopied(true);
+            setTimeout(() => setLinkCopied(false), 2000);
+        });
+    }
+
     function clearHistory() {
         setHistory([]);
         setExpandedIndex(null);
@@ -354,6 +411,16 @@ function Portfolio({ lang }) {
         <div>
             <h1>{t.title}</h1>
             <h2>{t.subtitle}</h2>
+
+            {/* Fear & Greed */}
+            {fearGreed && (
+                <div className="fear-greed-bar" style={{ borderColor: fearGreed.color }}>
+                    <span className="fear-greed-label">{t.fearGreedTitle}:</span>
+                    <span className="fear-greed-value" style={{ color: fearGreed.color }}>
+                        {fearGreed.label} ({fearGreed.score}/100)
+                    </span>
+                </div>
+            )}
 
             {/* Holding rows */}
             {holdings.map((holding, index) => (
@@ -443,9 +510,14 @@ function Portfolio({ lang }) {
                     <h3>{t.analysisTitle}</h3>
                     <p id="analysis-text">{analysis}</p>
 
-                    <button className="share-btn" onClick={shareAnalysis}>
-                        {copied ? t.copied : t.shareBtn}
-                    </button>
+                    <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "12px" }}>
+                        <button className="share-btn" onClick={shareAnalysis}>
+                            {copied ? t.copied : t.shareBtn}
+                        </button>
+                        <button className="share-btn" onClick={shareLink} style={{ backgroundColor: "#8e44ad" }}>
+                            {linkCopied ? t.shareLinkCopied : t.shareLinkBtn}
+                        </button>
+                    </div>
 
                     {/* Holdings pie chart */}
                     {holdingsPieData && (

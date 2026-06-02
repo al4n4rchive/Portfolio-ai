@@ -45,6 +45,14 @@ function App() {
         document.body.classList.toggle("dark", dark);
     }, [dark]);
 
+    // Auto-navigate to portfolio page if share link detected
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("s")) {
+            setPage("portfolio");
+        }
+    }, []);
+
     function navigate(p) {
         setPage(p);
         setSidebarOpen(false);
