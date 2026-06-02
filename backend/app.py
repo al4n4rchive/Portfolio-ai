@@ -67,13 +67,56 @@ def get_spy_return(start_date_str):
         return None
 
 
+# Common ticker → sector fallback map
+SECTOR_MAP = {
+    # Technology
+    "AAPL": "Technology", "MSFT": "Technology", "GOOGL": "Technology",
+    "GOOG": "Technology", "META": "Technology", "NVDA": "Technology",
+    "AMD": "Technology", "INTC": "Technology", "CRM": "Technology",
+    "ORCL": "Technology", "ADBE": "Technology", "CSCO": "Technology",
+    "QCOM": "Technology", "TXN": "Technology", "AVGO": "Technology",
+    "TSM": "Technology", "ASML": "Technology", "NOW": "Technology",
+    "SNOW": "Technology", "PLTR": "Technology", "NET": "Technology",
+    # Consumer
+    "AMZN": "Consumer", "TSLA": "Consumer", "NKE": "Consumer",
+    "SBUX": "Consumer", "MCD": "Consumer", "HD": "Consumer",
+    "LOW": "Consumer", "TGT": "Consumer", "WMT": "Consumer",
+    "COST": "Consumer", "DIS": "Consumer", "NFLX": "Consumer",
+    # Finance
+    "JPM": "Finance", "BAC": "Finance", "GS": "Finance",
+    "MS": "Finance", "WFC": "Finance", "C": "Finance",
+    "V": "Finance", "MA": "Finance", "AXP": "Finance",
+    "BLK": "Finance", "SCHW": "Finance", "COF": "Finance",
+    # Healthcare
+    "JNJ": "Healthcare", "PFE": "Healthcare", "MRK": "Healthcare",
+    "ABBV": "Healthcare", "UNH": "Healthcare", "TMO": "Healthcare",
+    "ABT": "Healthcare", "LLY": "Healthcare", "BMY": "Healthcare",
+    "AMGN": "Healthcare", "GILD": "Healthcare", "CVS": "Healthcare",
+    # Energy
+    "XOM": "Energy", "CVX": "Energy", "COP": "Energy",
+    "SLB": "Energy", "EOG": "Energy", "MPC": "Energy",
+    "OXY": "Energy", "PSX": "Energy", "VLO": "Energy",
+    # Industrials
+    "BA": "Industrials", "CAT": "Industrials", "GE": "Industrials",
+    "HON": "Industrials", "MMM": "Industrials", "UPS": "Industrials",
+    "FDX": "Industrials", "RTX": "Industrials", "LMT": "Industrials",
+    # ETFs
+    "SPY": "ETF", "QQQ": "ETF", "VOO": "ETF", "VTI": "ETF",
+    "IWM": "ETF", "DIA": "ETF", "GLD": "ETF", "TLT": "ETF",
+}
+
 # Get sector info for a ticker
 def get_sector(ticker):
+    # Check hardcoded map first
+    if ticker.upper() in SECTOR_MAP:
+        return SECTOR_MAP[ticker.upper()]
+    # Fall back to yFinance
     try:
-        info = yf.Ticker(ticker).info
-        return info.get("sector", "Unknown")
+        info   = yf.Ticker(ticker).info
+        sector = info.get("sector") or info.get("industryDisp") or ""
+        return sector if sector else "Other"
     except:
-        return "Unknown"
+        return "Other"
 
 
 # Calculate diversification score 0-100
@@ -445,7 +488,6 @@ def news():
         print("News Error:", e)
         return jsonify({"error": "Failed to fetch news", "details": str(e)}), 500
 
-
 # Stock lookup route
 @app.route("/stock_lookup", methods=["GET"])
 def stock_lookup():
@@ -494,6 +536,6 @@ def stock_lookup():
         print("Stock Lookup Error:", e)
         return jsonify({"error": "Failed to fetch stock data", "details": str(e)}), 500
 
-#run app
+
 if __name__ == "__main__":
     app.run(debug=True)
