@@ -535,6 +535,36 @@ body.dark .lang-btn {
 }
 
 
+/* ── Fear & Greed Bar ── */
+
+.fear-greed-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    background: #ffffff;
+    flex-wrap: wrap;
+}
+
+body.dark .fear-greed-bar {
+    background: #16213e;
+}
+
+.fear-greed-label {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    font-weight: bold;
+}
+
+.fear-greed-value {
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+
 /* ── Watchlist ── */
 
 .watchlist-section {
@@ -601,6 +631,61 @@ body.dark .watchlist-tag {
 }
 
 
+/* ── News ── */
+
+.news-section {
+    margin-top: 24px;
+}
+
+.news-title {
+    color: #2c3e50;
+    margin-bottom: 12px;
+    font-size: 1rem;
+}
+
+body.dark .news-title {
+    color: #e0e0e0;
+}
+
+.news-card {
+    display: block;
+    padding: 12px 16px;
+    background: #ffffff;
+    border-radius: 8px;
+    border-left: 4px solid #3498db;
+    margin-bottom: 10px;
+    text-decoration: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.2s;
+}
+
+.news-card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+body.dark .news-card {
+    background: #16213e;
+}
+
+.news-headline {
+    color: #2c3e50;
+    font-size: 0.9rem;
+    font-weight: bold;
+    margin: 0 0 4px 0;
+    line-height: 1.4;
+}
+
+body.dark .news-headline {
+    color: #e0e0e0;
+}
+
+.news-meta {
+    color: #95a5a6;
+    font-size: 0.78rem;
+    margin: 0;
+}
+
+
 /* ── Portfolio History ── */
 
 .history-card {
@@ -638,4 +723,440 @@ body.dark .history-holdings {
     color: #7f8c8d;
     margin: 0;
     line-height: 1.5;
+}
+
+
+/* ── History accordion ── */
+
+.history-full-analysis {
+    font-size: 0.9rem;
+    color: #2c3e50;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    margin: 8px 0;
+}
+
+body.dark .history-full-analysis {
+    color: #e0e0e0;
+}
+
+.history-toggle-btn {
+    background: none;
+    color: #3498db;
+    padding: 4px 0;
+    font-size: 0.85rem;
+    font-weight: normal;
+    border: none;
+    margin: 6px 0 0 0;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.history-toggle-btn:hover {
+    background: none;
+    color: #2980b9;
+}
+
+
+/* ── Dashboard Metric Cards ── */
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 24px;
+    margin-bottom: 8px;
+}
+
+.metric-card {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.07);
+    text-align: center;
+}
+
+body.dark .metric-card {
+    background: #16213e;
+}
+
+.metric-label {
+    font-size: 0.78rem;
+    color: #95a5a6;
+    margin: 0 0 6px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.metric-value {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #2c3e50;
+    margin: 0 0 4px 0;
+}
+
+body.dark .metric-value {
+    color: #e0e0e0;
+}
+
+.metric-sub {
+    font-size: 0.75rem;
+    color: #7f8c8d;
+    margin: 0;
+}
+
+
+/* ── History metrics line ── */
+
+.history-metrics {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    margin: 4px 0 8px 0;
+}
+
+@media (max-width: 600px) {
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+
+/* ── App Layout (sidebar + main) ── */
+
+.app-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+
+/* ── Sidebar ── */
+
+.sidebar {
+    width: 220px;
+    min-width: 220px;
+    background: #2c3e50;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 100;
+    transition: transform 0.3s;
+}
+
+body.dark .sidebar {
+    background: #0f1624;
+}
+
+.sidebar-logo {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #ffffff;
+    padding: 0 20px 24px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    letter-spacing: 0.02em;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 20px 12px;
+    flex: 1;
+}
+
+.sidebar-btn {
+    background: none;
+    color: #bdc3c7;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 0.95rem;
+    font-weight: normal;
+    margin: 0;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.sidebar-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.sidebar-active {
+    background: #3498db !important;
+    color: #ffffff !important;
+    font-weight: bold;
+}
+
+.sidebar-coffee {
+    padding: 20px 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-coffee .coffee-btn {
+    width: 100%;
+    text-align: center;
+    display: block;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+}
+
+
+/* ── Main content ── */
+
+.main-content {
+    margin-left: 220px;
+    flex: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.page-content {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 20px 24px 40px 24px;
+    width: 100%;
+}
+
+
+/* ── Top bar ── */
+
+.top-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #ffffff;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+body.dark .top-bar {
+    background: #1a1a2e;
+    border-color: #333;
+}
+
+
+/* ── Hamburger (mobile only) ── */
+
+.hamburger {
+    display: none;
+    background: none;
+    border: none;
+    color: #2c3e50;
+    font-size: 1.4rem;
+    padding: 4px 8px;
+    margin: 0;
+    cursor: pointer;
+}
+
+body.dark .hamburger {
+    color: #e0e0e0;
+}
+
+
+/* ── Sidebar overlay (mobile) ── */
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 99;
+}
+
+
+/* ── Home cards ── */
+
+.home-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.home-card {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 24px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.06);
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.2s;
+    border: 2px solid transparent;
+}
+
+.home-card:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    border-color: #3498db;
+}
+
+body.dark .home-card {
+    background: #16213e;
+}
+
+.home-card-icon {
+    font-size: 2rem;
+    margin-bottom: 12px;
+}
+
+.home-card h3 {
+    margin: 0 0 8px 0;
+    color: #2c3e50;
+    font-size: 1rem;
+}
+
+body.dark .home-card h3 {
+    color: #e0e0e0;
+}
+
+.home-card p {
+    margin: 0;
+    color: #7f8c8d;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+
+/* ── About cards ── */
+
+.about-card {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border-left: 4px solid #3498db;
+}
+
+body.dark .about-card {
+    background: #16213e;
+    color: #e0e0e0;
+}
+
+.about-card h3 {
+    margin: 0 0 12px 0;
+    color: #2c3e50;
+    font-size: 1.1rem;
+}
+
+body.dark .about-card h3 {
+    color: #e0e0e0;
+}
+
+.about-card p {
+    margin: 0;
+    line-height: 1.7;
+    color: #2c3e50;
+}
+
+body.dark .about-card p {
+    color: #bdc3c7;
+}
+
+.about-disclaimer {
+    border-left-color: #e67e22;
+    background: #fef9f0;
+}
+
+body.dark .about-disclaimer {
+    background: #1e1a0e;
+}
+
+.about-disclaimer h3 {
+    color: #e67e22 !important;
+}
+
+.about-list {
+    margin: 0;
+    padding-left: 20px;
+    line-height: 2;
+    color: #2c3e50;
+}
+
+body.dark .about-list {
+    color: #bdc3c7;
+}
+
+
+/* ── Mobile responsive ── */
+
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    .sidebar-open {
+        transform: translateX(0);
+    }
+    .sidebar-overlay {
+        display: block;
+    }
+    .hamburger {
+        display: block;
+    }
+    .main-content {
+        margin-left: 0;
+    }
+    .home-cards {
+        grid-template-columns: 1fr;
+    }
+    .page-content {
+        padding: 16px;
+    }
+}
+
+
+/* ── News ── */
+
+.news-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.news-item {
+    display: block;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-left: 4px solid var(--blue);
+    border-radius: 6px;
+    text-decoration: none;
+    transition: opacity 0.2s;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.news-item:hover {
+    opacity: 0.8;
+}
+
+.news-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    font-size: 0.78rem;
+}
+
+.news-source {
+    color: var(--blue);
+    font-weight: bold;
+}
+
+.news-date {
+    color: var(--text3);
+}
+
+.news-headline {
+    margin: 0;
+    color: var(--text);
+    font-size: 0.9rem;
+    line-height: 1.4;
 }

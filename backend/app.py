@@ -1,7 +1,9 @@
 import os
+import requests
 import yfinance as yf
 
 from groq import Groq
+from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
@@ -18,6 +20,7 @@ load_dotenv(
 
 # API Keys
 groq_key    = os.getenv("GROQ_API_KEY")
+finnhub_key = os.getenv("FINNHUB_KEY")
 
 # Groq client
 groq_client = Groq(api_key=groq_key)
@@ -35,18 +38,57 @@ CORS(app, origins=[
 # Get current stock price using yfinance
 def get_stock_price(ticker):
     try:
-        stock = yf.Ticker(ticker)
+        stock   = yf.Ticker(ticker)
         history = stock.history(period="1d")
-
         if history.empty:
-            print(f"Ticker {ticker} not found or no data returned.")
             return None
-
         return round(float(history["Close"].iloc[-1]), 2)
-
     except Exception as e:
         print("yFinance Error:", e)
         return None
+
+
+# Get SPY return from a start date to today
+def get_spy_return(start_date_str):
+    try:
+        start = datetime.strptime(start_date_str, "%Y-%m-%d")
+        spy   = yf.Ticker("SPY")
+        hist  = spy.history(start=start_date_str, end=datetime.today().strftime("%Y-%m-%d"))
+
+        if hist.empty:
+            return None
+
+        spy_start = float(hist["Close"].iloc[0])
+        spy_end   = float(hist["Close"].iloc[-1])
+        return round(((spy_end - spy_start) / spy_start) * 100, 2)
+
+    except Exception as e:
+        print("SPY Error:", e)
+        return None
+
+
+# Get sector info for a ticker
+def get_sector(ticker):
+    try:
+        info = yf.Ticker(ticker).info
+        return info.get("sector", "Unknown")
+    except:
+        return "Unknown"
+
+
+# Calculate diversification score 0-100
+def calc_diversification_score(sector_weights):
+    if not sector_weights:
+        return 0
+    n = len(sector_weights)
+    if n == 1:
+        return 10
+    max_weight = max(sector_weights.values())
+    # higher concentration = lower score
+    concentration_penalty = max_weight / 100
+    base_score = min(n * 15, 70)
+    score = base_score + (1 - concentration_penalty) * 30
+    return round(min(score, 100))
 
 
 # Analyze portfolio route
@@ -61,12 +103,17 @@ def analyze():
     holdings = data["holdings"]
     language = data.get("language", "en")
 
-    portfolio_summary = []
+    portfolio_summary  = []
+    total_value        = 0
+    total_cost         = 0
+    sector_values      = {}
+    oldest_date        = None
 
     for holding in holdings:
         ticker    = holding.get("ticker")
         shares    = holding.get("shares")
         buy_price = holding.get("buyPrice")
+        buy_date  = holding.get("buyDate", "")
 
         if not ticker or not shares or not buy_price:
             continue
@@ -77,13 +124,30 @@ def analyze():
         except ValueError:
             continue
 
+        # Track oldest buy date for S&P 500 comparison
+        if buy_date:
+            try:
+                d = datetime.strptime(buy_date, "%Y-%m-%d")
+                if oldest_date is None or d < oldest_date:
+                    oldest_date = d
+            except:
+                pass
+
         current_price = get_stock_price(ticker)
         if current_price is None:
             continue
 
         current_value  = current_price * shares
-        gain_loss      = current_value - (buy_price * shares)
+        cost_basis     = buy_price * shares
+        gain_loss      = current_value - cost_basis
         percent_change = ((current_price - buy_price) / buy_price) * 100
+
+        total_value += current_value
+        total_cost  += cost_basis
+
+        # Get sector for diversification
+        sector = get_sector(ticker)
+        sector_values[sector] = sector_values.get(sector, 0) + current_value
 
         line = (
             f"{ticker}: {shares} shares | "
@@ -97,41 +161,109 @@ def analyze():
         error_msg = (
             "No valid holdings found. Check your tickers and try again."
             if language == "en"
-            else "No se encontraron inversiones válidas. Verifica los tickers e intenta de nuevo."
+            else "No se encontraron inversiones válidas."
         )
         return jsonify({"error": error_msg}), 400
 
+    # Portfolio metrics
+    total_gain_loss     = round(total_value - total_cost, 2)
+    portfolio_return    = round(((total_value - total_cost) / total_cost) * 100, 2) if total_cost > 0 else 0
+
+    # Sector weights as percentages
+    sector_weights = {
+        s: round((v / total_value) * 100, 1)
+        for s, v in sector_values.items()
+    } if total_value > 0 else {}
+
+    diversification_score = calc_diversification_score(sector_weights)
+
+    # S&P 500 comparison
+    sp500_return = None
+    if oldest_date:
+        sp500_return = get_spy_return(oldest_date.strftime("%Y-%m-%d"))
+    else:
+        # Default to 1 year ago
+        one_year_ago = (datetime.today() - timedelta(days=365)).strftime("%Y-%m-%d")
+        sp500_return = get_spy_return(one_year_ago)
+
+    # Beat the market?
+    beat_market = None
+    if sp500_return is not None:
+        beat_market = portfolio_return > sp500_return
+
+    # Build sector string for prompt
+    sector_str = "\n".join([f"  {s}: {w}%" for s, w in sector_weights.items()])
+
+    # Build prompt
     summary_text = "\n".join(portfolio_summary)
+
+    sp500_line = (
+        f"S&P 500 return (same period): {sp500_return:+.2f}%"
+        if sp500_return is not None
+        else "S&P 500 comparison: unavailable"
+    )
 
     if language == "es":
         prompt = f"""
-Eres un asesor financiero útil. Responde SOLO en español.
+Eres un asesor financiero experto. Responde SOLO en español.
 
-Un usuario ha compartido su portafolio de inversiones.
+Un usuario ha compartido su portafolio de inversiones con las siguientes métricas:
 
-Por favor haz lo siguiente:
-1. Identifica qué inversiones están en riesgo o perdiendo valor
-2. Identifica qué inversiones están funcionando bien
-3. Da recomendaciones claras de comprar, mantener o vender
-4. Mantén tu respuesta amigable para principiantes
+MÉTRICAS DEL PORTAFOLIO:
+- Valor total: ${total_value:,.2f}
+- Costo total: ${total_cost:,.2f}
+- Ganancia/Pérdida total: ${total_gain_loss:+,.2f}
+- Retorno del portafolio: {portfolio_return:+.2f}%
+- {sp500_line}
+- Puntuación de diversificación: {diversification_score}/100
 
-Portafolio:
+EXPOSICIÓN POR SECTOR:
+{sector_str}
+
+INVERSIONES INDIVIDUALES:
 {summary_text}
+
+Por favor proporciona:
+1. Resumen del rendimiento general del portafolio
+2. Comparación vs S&P 500 (¿superó al mercado?)
+3. Análisis de riesgo (concentración sectorial, posición más grande)
+4. Inversiones en riesgo o perdiendo valor
+5. Inversiones funcionando bien
+6. Recomendaciones de optimización específicas (comprar, mantener, vender)
+7. Sugerencias para mejorar la diversificación
+
+Mantén la respuesta amigable para principiantes y clara.
 """
     else:
         prompt = f"""
-You are a helpful financial advisor. Respond ONLY in English.
+You are an expert financial advisor. Respond ONLY in English.
 
-A user has shared their investment portfolio below.
+A user has shared their investment portfolio with the following metrics:
 
-Please do the following:
-1. Identify which holdings are at risk or losing value
-2. Identify which holdings are performing well
-3. Give clear buy, hold, or sell recommendations
-4. Keep your response beginner friendly
+PORTFOLIO METRICS:
+- Total portfolio value: ${total_value:,.2f}
+- Total cost basis: ${total_cost:,.2f}
+- Total gain/loss: ${total_gain_loss:+,.2f}
+- Portfolio return: {portfolio_return:+.2f}%
+- {sp500_line}
+- Diversification score: {diversification_score}/100
 
-Portfolio:
+SECTOR EXPOSURE:
+{sector_str}
+
+INDIVIDUAL HOLDINGS:
 {summary_text}
+
+Please provide:
+1. Overall portfolio performance summary
+2. S&P 500 comparison (did they beat the market?)
+3. Risk analysis (sector concentration, largest position)
+4. Holdings at risk or losing value
+5. Holdings performing well
+6. Specific optimization recommendations (buy, hold, sell)
+7. Suggestions to improve diversification
+
+Keep the response beginner friendly and clear.
 """
 
     try:
@@ -140,7 +272,18 @@ Portfolio:
             messages=[{"role": "user", "content": prompt}]
         )
         analysis = chat.choices[0].message.content
-        return jsonify({"analysis": analysis})
+
+        return jsonify({
+            "analysis":             analysis,
+            "totalValue":           round(total_value, 2),
+            "totalCost":            round(total_cost, 2),
+            "gainLoss":             total_gain_loss,
+            "portfolioReturn":      portfolio_return,
+            "sp500Return":          sp500_return,
+            "beatMarket":           beat_market,
+            "sectors":              sector_weights,
+            "diversificationScore": diversification_score
+        })
 
     except Exception as e:
         print("Server Error:", e)
@@ -181,16 +324,12 @@ def chat():
                 *[{"role": m["role"], "content": m["content"]} for m in messages]
             ]
         )
-
         reply = chat_response.choices[0].message.content
         return jsonify({"reply": reply})
 
     except Exception as e:
         print("Chat Error:", e)
-        return jsonify({
-            "error": "Unexpected server error",
-            "details": str(e)
-        }), 500
+        return jsonify({"error": "Unexpected server error", "details": str(e)}), 500
 
 
 # Predict route
@@ -211,7 +350,7 @@ def predict():
     language = data.get("language", "en")
 
     if len(prices) < 2:
-        return jsonify({"error": "Not enough price data to make a prediction"}), 400
+        return jsonify({"error": "Not enough price data"}), 400
 
     first_price    = prices[0]["price"]
     last_price     = prices[-1]["price"]
@@ -220,58 +359,42 @@ def predict():
     price_change   = round(last_price - first_price, 2)
     percent_change = round(((last_price - first_price) / first_price) * 100, 2)
 
-    recent = prices[-5:]
-    recent_str = "\n".join(
-        [f"  {p['date']}: ${p['price']}" for p in recent]
-    )
+    recent     = prices[-5:]
+    recent_str = "\n".join([f"  {p['date']}: ${p['price']}" for p in recent])
 
     if language == "es":
         prompt = f"""
 Eres un analista financiero experto. Responde SOLO en español.
 
-Analiza los siguientes datos históricos de precios para {name} ({ticker})
-y proporciona una predicción del mercado a corto plazo.
+Analiza los datos históricos de {name} ({ticker}) y proporciona una predicción.
 
-Datos del período ({period}):
+Período ({period}):
 - Precio inicial ({first_date}): ${first_price}
 - Precio actual ({last_date}): ${last_price}
 - Cambio: ${price_change:+} ({percent_change:+}%)
-- Máximo del período: ${high}
-- Mínimo del período: ${low}
+- Máximo: ${high} | Mínimo: ${low}
 
 Precios recientes:
 {recent_str}
 
-Por favor proporciona:
-1. Análisis de la tendencia actual (alcista, bajista o lateral)
-2. Niveles clave a observar (soporte y resistencia)
-3. Perspectiva a corto plazo (próximas 2-4 semanas)
-4. Nivel de riesgo (bajo, medio, alto)
-5. Recomendación breve para principiantes
+Proporciona: tendencia actual, niveles clave, perspectiva 2-4 semanas, nivel de riesgo, recomendación para principiantes.
 """
     else:
         prompt = f"""
 You are an expert financial analyst. Respond ONLY in English.
 
-Analyze the following historical price data for {name} ({ticker})
-and provide a short-term market prediction.
+Analyze the historical price data for {name} ({ticker}) and provide a short-term prediction.
 
-Period data ({period}):
+Period ({period}):
 - Starting price ({first_date}): ${first_price}
 - Current price ({last_date}): ${last_price}
 - Change: ${price_change:+} ({percent_change:+}%)
-- Period high: ${high}
-- Period low: ${low}
+- High: ${high} | Low: ${low}
 
 Recent prices:
 {recent_str}
 
-Please provide:
-1. Current trend analysis (bullish, bearish, or sideways)
-2. Key levels to watch (support and resistance)
-3. Short-term outlook (next 2-4 weeks)
-4. Risk level (low, medium, high)
-5. Brief recommendation for beginners
+Provide: current trend, key levels to watch, 2-4 week outlook, risk level, beginner recommendation.
 """
 
     try:
@@ -284,10 +407,43 @@ Please provide:
 
     except Exception as e:
         print("Predict Error:", e)
-        return jsonify({
-            "error": "Unexpected server error",
-            "details": str(e)
-        }), 500
+        return jsonify({"error": "Unexpected server error", "details": str(e)}), 500
+
+
+# News route
+@app.route("/news", methods=["GET"])
+def news():
+
+    ticker = request.args.get("ticker", "").strip().upper()
+
+    if not ticker:
+        return jsonify({"error": "No ticker provided"}), 400
+
+    if not finnhub_key:
+        return jsonify({"error": "Finnhub API key not configured"}), 500
+
+    try:
+        today    = datetime.today().strftime("%Y-%m-%d")
+        week_ago = (datetime.today() - timedelta(days=7)).strftime("%Y-%m-%d")
+
+        url      = f"https://finnhub.io/api/v1/company-news?symbol={ticker}&from={week_ago}&to={today}&token={finnhub_key}"
+        response = requests.get(url, timeout=10)
+        data     = response.json()
+
+        articles = []
+        for item in data[:5]:
+            articles.append({
+                "headline": item.get("headline", ""),
+                "source":   item.get("source", ""),
+                "url":      item.get("url", ""),
+                "date":     datetime.fromtimestamp(item.get("datetime", 0)).strftime("%b %d, %Y")
+            })
+
+        return jsonify({"articles": articles})
+
+    except Exception as e:
+        print("News Error:", e)
+        return jsonify({"error": "Failed to fetch news", "details": str(e)}), 500
 
 
 # Stock lookup route
@@ -309,14 +465,12 @@ def stock_lookup():
         history = stock.history(period=period)
 
         if history.empty:
-            return jsonify({
-                "error": f"Ticker '{ticker}' not found. Check the symbol and try again."
-            }), 404
+            return jsonify({"error": f"Ticker '{ticker}' not found."}), 404
 
         try:
             info = stock.info
             name = info.get("longName") or info.get("shortName") or ticker
-        except Exception:
+        except:
             name = ticker
 
         price = round(float(history["Close"].iloc[-1]), 2)
@@ -331,23 +485,15 @@ def stock_lookup():
             })
 
         return jsonify({
-            "name":   name,
-            "ticker": ticker,
-            "price":  price,
-            "high":   high,
-            "low":    low,
-            "period": period,
-            "prices": prices
+            "name": name, "ticker": ticker,
+            "price": price, "high": high, "low": low,
+            "period": period, "prices": prices
         })
 
     except Exception as e:
         print("Stock Lookup Error:", e)
-        return jsonify({
-            "error": "Failed to fetch stock data",
-            "details": str(e)
-        }), 500
+        return jsonify({"error": "Failed to fetch stock data", "details": str(e)}), 500
 
-
-# Run app
+#run app
 if __name__ == "__main__":
     app.run(debug=True)
